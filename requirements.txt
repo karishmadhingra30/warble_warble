@@ -1,0 +1,7 @@
+# Only two runtime dependencies. The website needs neither of them: the page is
+# plain HTML/CSS/JS and reads a JSON file that this pipeline produces.
+
+requests>=2.31    # HTTP client used to call the GBIF REST API
+pandas>=2.0       # turns raw sighting rows into per-year arrival statistics
+
+pytest>=7.4       # test runner (development only)
