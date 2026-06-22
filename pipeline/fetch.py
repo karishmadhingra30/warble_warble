@@ -412,3 +412,99 @@ def _slim_page(payload: dict) -> dict:
         "endOfRecords": payload.get("endOfRecords", True),
         "results": [_slim_record(r) for r in payload.get("results", [])],
     }
+
+
+# ---------------------------------------------------------------------------
+# Monthly counts: the evidence behind the wintering-bird decisions
+# ---------------------------------------------------------------------------
+
+ALL_MONTHS = tuple(range(1, 13))
+
+
+def monthly_counts(
+    client: GbifClient, taxon_key: int, year_from: int, year_to: int
+) -> dict[int, int]:
+    """Count sightings per calendar month across a span of years.
+
+    Why this exists
+    ---------------
+    Several birds on our list are only *partly* migratory in California.
+    Townsend's Warbler and Orange-crowned Warbler, in particular, are widely
+    reported along the coast in December and January. Those birds did not
+    arrive in spring; they never left. If we leave them in, our "10% of this
+    spring's sightings have happened" date gets dragged into January and the
+    species looks like it arrives absurdly early.
+
+    We are told not to settle this from memory, and we do not. This function
+    produces the twelve numbers that settle it. A species whose December and
+    January counts are a large fraction of its April and May counts is
+    wintering here; a species with near-zero winter counts is not.
+
+    How it works
+    ------------
+    Twelve ``limit=0`` requests, one per month. GBIF also offers faceting,
+    which could do this in one request, but a count query is documented,
+    certain, and cheap: twelve of them per species is about twelve seconds.
+    Clarity beats cleverness for a number this important.
+
+    Returns
+    -------
+    ``{month_number: sighting_count}`` for all twelve months.
+    """
+    params = client.base_occurrence_params(taxon_key)
+    # GBIF accepts a comma-separated range for `year`, e.g. "2020,2024",
+    # which is inclusive at both ends.
+    year_range = f"{year_from},{year_to}"
+
+    counts: dict[int, int] = {}
+    for month in ALL_MONTHS:
+        counts[month] = client.count(
+            {**params, "year": year_range, "month": month},
+            label=f"monthcount-{taxon_key}-{year_from}_{year_to}-{month:02d}",
+        )
+    return counts
+
+
+def winter_share(counts: dict[int, int]) -> float:
+    """How lopsided a species' year is towards winter, as a single number.
+
+    Defined as ``(December + January + February) / (April + May)``.
+
+    The numerator is the depth of winter, when a true long-distance migrant
+    should be in Mexico or Central America and essentially absent from
+    California. The denominator is peak spring passage, when every migrant on
+    our list is at its most numerous.
+
+    A pure migrant scores near zero. A species that winters here in numbers
+    scores high. The threshold we act on, and what we do at each level, is in
+    DECISIONS.md.
+
+    Returns ``float('inf')`` if there are no April or May records at all,
+    which would mean the species is not a spring migrant here in any useful
+    sense and should not be in the study.
+    """
+    winter = counts.get(12, 0) + counts.get(1, 0) + counts.get(2, 0)
+    spring_peak = counts.get(4, 0) + counts.get(5, 0)
+    if spring_peak == 0:
+        return float("inf")
+    return winter / spring_peak
+
+
+def format_monthly_table(name: str, counts: dict[int, int]) -> str:
+    """Render one species' twelve monthly counts as a text row, for DECISIONS.md.
+
+    The output is deliberately paste-ready: run the pipeline with
+    ``--monthly-report`` and the table it prints is the evidence you file.
+    """
+    cells = " ".join(f"{counts.get(m, 0):>7}" for m in ALL_MONTHS)
+    return f"{name:<30} {cells}  share={winter_share(counts):.2f}"
+
+
+def monthly_table_header() -> str:
+    """Column headings that line up with :func:`format_monthly_table`."""
+    months = " ".join(
+        f"{m:>7}" for m in
+        ("Jan", "Feb", "Mar", "Apr", "May", "Jun",
+         "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+    )
+    return f"{'species':<30} {months}  winter/spring"
