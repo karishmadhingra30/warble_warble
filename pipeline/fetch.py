@@ -26,7 +26,7 @@ import json
 import time
 import hashlib
 from pathlib import Path
-from typing import Any, Iterator, Optional
+from typing import Any, Callable, Iterator, Optional
 from urllib.parse import urlencode
 
 # `requests` is the HTTP library we use for every GBIF call. We use it rather
@@ -177,12 +177,24 @@ class GbifClient:
         if elapsed < self.min_interval:
             time.sleep(self.min_interval - elapsed)
 
-    def get(self, path: str, params: dict[str, Any], label: str) -> dict:
+    def get(
+        self,
+        path: str,
+        params: dict[str, Any],
+        label: str,
+        postprocess: Optional[Callable[[dict], dict]] = None,
+    ) -> dict:
         """GET one GBIF endpoint, via the cache, with retries. Returns JSON.
 
         This is the single choke point for network access in the whole project.
         Everything else calls it. That is deliberate: it means the rate limit
         and the cache cannot be accidentally bypassed by a new code path.
+
+        ``postprocess`` runs on the response *before* it is cached. Occurrence
+        pages use it to throw away the ninety-odd fields we never read. A raw
+        GBIF record is around 3 KB; the handful of fields we keep is around
+        100 bytes. Over a couple of million records that is the difference
+        between a cache you can keep on a laptop and one you cannot.
         """
         cache_path = self._cache_path(path, params, label)
         cached = self._read_cache(cache_path)
@@ -228,6 +240,8 @@ class GbifClient:
                 last_error = f"response was not JSON: {exc}"
                 continue
 
+            if postprocess is not None:
+                payload = postprocess(payload)
             self._write_cache(cache_path, payload)
             return payload
 
@@ -276,3 +290,125 @@ class GbifClient:
             "occurrence/search", {**params, "limit": 0, "offset": 0}, label=label
         )
         return int(payload.get("count", 0))
+
+    # -- occurrence paging -------------------------------------------------
+
+    def _occurrence_page(self, params: dict[str, Any], label: str) -> dict:
+        """Fetch one page of occurrence records, trimmed to the fields we use."""
+        return self.get(
+            "occurrence/search", params, label=label, postprocess=_slim_page
+        )
+
+    def iter_occurrences(
+        self, taxon_key: int, year: int, month: int
+    ) -> Iterator[dict]:
+        """Yield every eBird California sighting of one species in one month.
+
+        Why one month at a time
+        -----------------------
+        GBIF refuses an ``offset`` above 100,000, so any single query whose
+        result set is larger than that is simply unreachable past that point.
+        A common warbler in California can run to tens of thousands of records
+        in a year, and the whole 2008-2024 span for one species is far more
+        than 100,000. Splitting the pull by species, then year, then month
+        keeps every individual query small enough to page through completely.
+
+        If a single month still somehow exceeds the ceiling, we split again by
+        day rather than silently returning a truncated month, which would bias
+        the arrival date late.
+        """
+        params = {**self.base_occurrence_params(taxon_key), "year": year, "month": month}
+        label = f"occ-{taxon_key}-{year}-{month:02d}"
+
+        total = self.count(params, label=f"count-{label}")
+        if total == 0:
+            return
+
+        if total > MAX_OFFSET:
+            # Rare, but handled rather than hoped away. Splitting by day makes
+            # each sub-query roughly thirty times smaller.
+            for day in range(1, 32):
+                yield from self._page_through(
+                    {**params, "day": day}, f"{label}-d{day:02d}"
+                )
+            return
+
+        yield from self._page_through(params, label)
+
+    def _page_through(self, params: dict[str, Any], label: str) -> Iterator[dict]:
+        """Walk one query's pages from offset 0 until GBIF says it is done.
+
+        Kept separate from :meth:`iter_occurrences` so that the day-splitting
+        fallback can reuse the exact same paging logic.
+        """
+        offset = 0
+        while offset <= MAX_OFFSET - MAX_PAGE_SIZE:
+            page = self._occurrence_page(
+                {**params, "limit": MAX_PAGE_SIZE, "offset": offset},
+                label=f"{label}-off{offset}",
+            )
+            results = page.get("results", [])
+            if not results:
+                return
+            yield from results
+
+            # GBIF sets endOfRecords on the last page. Trusting its own flag is
+            # safer than comparing counts, because the count can drift while a
+            # long run is in progress.
+            if page.get("endOfRecords", True):
+                return
+            offset += MAX_PAGE_SIZE
+
+    def spring_records(self, taxon_key: int, year: int) -> list[dict]:
+        """All sightings of one species in one spring window (Jan 1 - Jun 30).
+
+        Returns a plain list rather than an iterator because the caller wants
+        to count it and take a percentile of it, both of which need the whole
+        thing in memory anyway. One species-year is at most a few tens of
+        thousands of trimmed rows, so this is comfortably small.
+        """
+        rows: list[dict] = []
+        for month in SPRING_MONTHS:
+            rows.extend(self.iter_occurrences(taxon_key, year, month))
+        return rows
+
+
+# ---------------------------------------------------------------------------
+# Trimming raw GBIF records
+# ---------------------------------------------------------------------------
+
+# January through June. The project brief defines the spring window as
+# 1 January to 30 June, and month numbers are how GBIF lets us ask for it.
+SPRING_MONTHS = (1, 2, 3, 4, 5, 6)
+
+# The only fields the rest of the pipeline reads. Everything else GBIF sends
+# (licence text, publisher ids, verbatim taxonomy, media links, and so on) is
+# dropped before the response is cached.
+KEPT_FIELDS = (
+    "key",              # GBIF's id for this record, useful for spot-checking
+    "eventDate",        # when the bird was seen: this is the whole point
+    "year",
+    "month",
+    "day",
+    "decimalLatitude",  # kept so a future version can split coastal vs inland
+    "decimalLongitude",
+    "county",
+)
+
+
+def _slim_record(record: dict) -> dict:
+    """Keep only :data:`KEPT_FIELDS` from one GBIF occurrence record."""
+    return {field: record.get(field) for field in KEPT_FIELDS}
+
+
+def _slim_page(payload: dict) -> dict:
+    """Trim a whole occurrence-search page, keeping the paging metadata.
+
+    The metadata (``endOfRecords``, ``count``) has to survive because
+    :meth:`GbifClient._page_through` steers by it.
+    """
+    return {
+        "count": payload.get("count"),
+        "endOfRecords": payload.get("endOfRecords", True),
+        "results": [_slim_record(r) for r in payload.get("results", [])],
+    }
