@@ -508,3 +508,70 @@ def monthly_table_header() -> str:
          "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
     )
     return f"{'species':<30} {months}  winter/spring"
+
+
+# ---------------------------------------------------------------------------
+# Turning the monthly evidence into a per-species decision
+# ---------------------------------------------------------------------------
+
+# Where we draw the lines. These are judgement calls, so they live here as
+# named constants with the reasoning written down, not buried in an `if`.
+#
+# Below CLEAN: the bird is essentially absent in midwinter. Its spring
+#   sightings really are arrivals, and the 10th percentile means what we want.
+# Between CLEAN and FLAG: a scattering of winter records. Enough to mention,
+#   not enough to move a 10th percentile that sits on thousands of sightings.
+# Between FLAG and EXCLUDE: a real wintering population. The arrival date is
+#   pulled early by birds that never left, so the number is still comparable
+#   between our two windows but must not be read as "the day migrants landed".
+# Above EXCLUDE: winter swamps spring. There is no arrival signal left to find.
+WINTER_SHARE_CLEAN = 0.05
+WINTER_SHARE_FLAG = 0.20
+WINTER_SHARE_EXCLUDE = 0.60
+
+
+def classify_wintering(counts: dict[int, int], is_control: bool) -> tuple[str, str | None]:
+    """Decide how much to trust one species' arrival date. Returns (label, note).
+
+    The label is one of ``"good"``, ``"flagged"``, ``"excluded"`` or
+    ``"control"``, and it is what the web page colours and sorts by.
+
+    Controls are never excluded and never flagged for wintering. That is not a
+    loophole, it is the point: a California Towhee is present every month of
+    the year, so it would score very high on :func:`winter_share` and be thrown
+    out by the same rule that protects the warblers. But a resident bird is
+    exactly what we want to push through the method to see what the method does
+    to a bird that cannot possibly have changed its arrival date. Excluding the
+    controls would delete the experiment's control group.
+    """
+    share = winter_share(counts)
+
+    if is_control:
+        return "control", (
+            "Resident species, present all year. Included on purpose as a "
+            "check on the method, not as a migration result."
+        )
+
+    if share >= WINTER_SHARE_EXCLUDE:
+        return "excluded", (
+            f"Winter-to-spring ratio {share:.2f} is above {WINTER_SHARE_EXCLUDE}. "
+            "Wintering birds outnumber spring arrivals badly enough that there "
+            "is no arrival signal left to measure."
+        )
+
+    if share >= WINTER_SHARE_FLAG:
+        return "flagged", (
+            f"Winter-to-spring ratio {share:.2f}. A real wintering population "
+            "in California pulls this species' 10th percentile earlier than "
+            "the true arrival of migrants. The shift between windows is still "
+            "comparable, but the dates themselves are not arrival dates."
+        )
+
+    if share >= WINTER_SHARE_CLEAN:
+        return "good", (
+            f"Winter-to-spring ratio {share:.2f}: a scattering of winter "
+            "records, too few to move a percentile built on thousands of "
+            "spring sightings."
+        )
+
+    return "good", None
