@@ -82,8 +82,24 @@ WARBLERS: list[Species] = [
             alt_scientific_names=["Oreothlypis celata", "Vermivora celata"]),
 ]
 
+# The controls. Both are common California residents that do not migrate: the
+# same individuals hold the same few acres all year. Run through the identical
+# method, their "shift" measures how much our number moves for reasons that
+# have nothing to do with birds. If a warbler shifts 8 days earlier and the
+# controls shift 6 days earlier, the real warbler signal is about 2 days, not 8.
+#
+# This is the most important idea in the project. Without it we would have a
+# chart of numbers moving and no way to tell whether birds or birdwatchers
+# moved them.
+CONTROLS: list[Species] = [
+    Species("California Towhee", "Melozone crissalis", is_control=True,
+            alt_scientific_names=["Pipilo crissalis"]),
+    Species("Oak Titmouse", "Baeolophus inornatus", is_control=True),
+]
+
+
 def all_species() -> list[Species]:
-    """Return every bird we study.
+    """Return every bird we study: the eight warblers, then the two controls.
 
     Kept as a function rather than a module-level list so that each call hands
     back a fresh copy. ``resolve_taxon_key`` writes into these objects, and we
@@ -91,7 +107,7 @@ def all_species() -> list[Species]:
     """
     import copy
 
-    return [copy.deepcopy(sp) for sp in WARBLERS]
+    return [copy.deepcopy(sp) for sp in WARBLERS + CONTROLS]
 
 
 # ---------------------------------------------------------------------------
