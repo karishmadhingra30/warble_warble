@@ -1,0 +1,23 @@
+{
+  "generated_at": null,
+  "note": "No pipeline run yet. This file is the empty state: it has the right shape so the page loads, but it contains no results. Run `python pipeline/build.py` and it is overwritten with real numbers. Nothing here is made up, because nothing here is a measurement.",
+  "method": "10th percentile day of year, Jan 1 to Jun 30, eBird records via GBIF",
+  "windows": {
+    "early": [
+      2008,
+      2012
+    ],
+    "late": [
+      2020,
+      2024
+    ]
+  },
+  "arrival_percentile": 0.1,
+  "source": {
+    "name": "GBIF occurrence search, EOD - eBird Observation Dataset",
+    "dataset_key": "4fa7b334-ce0d-4e88-aaae-2e0c138d049e",
+    "dataset_url": "https://www.gbif.org/dataset/4fa7b334-ce0d-4e88-aaae-2e0c138d049e",
+    "api": "https://api.gbif.org/v1"
+  },
+  "species": []
+}
