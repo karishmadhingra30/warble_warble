@@ -98,12 +98,10 @@ def build_species(
     for year in window_years(EARLY_WINDOW) + window_years(LATE_WINDOW):
         records = client.spring_records(sp.taxon_key, year)
         days = arrivals.records_to_days(records)
-        # A year with no usable sightings cannot have a percentile taken of
-        # it, so it is recorded as a zero-sighting year rather than crashing.
-        if not days:
-            yearly.append(arrivals.YearArrival(year=year, n=0, arrival_doy=None))
-        else:
-            yearly.append(arrivals.yearly_arrival(year, days))
+        # yearly_arrival applies the minimum-sightings rule itself and hands
+        # back a skipped result rather than raising, so a thin year needs no
+        # special case here.
+        yearly.append(arrivals.yearly_arrival(year, days))
         if verbose:
             last = yearly[-1]
             shown = arrivals.format_day_of_year(last.arrival_doy) or "no data"
@@ -138,7 +136,14 @@ def build_species(
         "winter_share": round(fetch.winter_share(monthly), 3),
         "monthly_counts": [monthly.get(m, 0) for m in fetch.ALL_MONTHS],
         "yearly": [
-            {"year": y.year, "arrival_doy": y.arrival_doy, "n": y.n}
+            {
+                "year": y.year,
+                "arrival_doy": y.arrival_doy,
+                "n": y.n,
+                # Thin years stay in the output rather than vanishing, so the
+                # page can show honestly where the data runs out.
+                "used": y.used,
+            }
             for y in yearly
         ],
     }
@@ -167,6 +172,8 @@ def build_all(client: fetch.GbifClient, verbose: bool = True) -> dict:
         "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "method": METHOD_DESCRIPTION,
         "windows": {"early": list(EARLY_WINDOW), "late": list(LATE_WINDOW)},
+        "min_sightings_per_year": arrivals.MIN_SIGHTINGS_PER_YEAR,
+        "min_years_per_window": arrivals.MIN_YEARS_PER_WINDOW,
         "arrival_percentile": arrivals.ARRIVAL_PERCENTILE,
         "source": {
             "name": "GBIF occurrence search, EOD - eBird Observation Dataset",

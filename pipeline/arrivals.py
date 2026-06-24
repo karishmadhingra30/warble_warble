@@ -52,6 +52,14 @@ ARRIVAL_PERCENTILE = 0.10
 # The spring window, as month numbers. 1 January to 30 June.
 SPRING_MONTHS = (1, 2, 3, 4, 5, 6)
 
+# A species-year with fewer sightings than this is thrown away rather than
+# reported. At 100 sightings the 10th percentile is the 10th record; at 12 it
+# is the second record, which is a first-sighting date wearing a disguise.
+MIN_SIGHTINGS_PER_YEAR = 100
+
+# A five-year window needs at least this many usable years to report a median.
+MIN_YEARS_PER_WINDOW = 3
+
 # Any non-leap year works as the calendar we translate day numbers back into.
 # 2001 is arbitrary and never shown to the reader.
 REFERENCE_YEAR = 2001
@@ -222,20 +230,42 @@ def records_to_days(records: Iterable[dict[str, Any]]) -> list[int]:
 
 @dataclass
 class YearArrival:
-    """The result for one species in one spring."""
+    """The result for one species in one spring.
+
+    ``used`` is False when the year was thrown away for having too few
+    sightings. Those years still appear in the output so the web page can show
+    an honest picture of where the data is thin.
+    """
 
     year: int
     n: int
     arrival_doy: Optional[int]
+    used: bool
+    skipped_reason: Optional[str] = None
 
 
-def yearly_arrival(year: int, days: Sequence[int]) -> YearArrival:
-    """Compute one species-year's arrival date.
+def yearly_arrival(
+    year: int,
+    days: Sequence[int],
+    min_sightings: int = MIN_SIGHTINGS_PER_YEAR,
+) -> YearArrival:
+    """Compute one species-year's arrival date, or record why we skipped it.
 
     Separated from the download so it can be tested against hand-made data
     with a known answer, which is what ``tests/test_arrivals.py`` does.
     """
-    return YearArrival(year=year, n=len(days), arrival_doy=percentile_day(days))
+    n = len(days)
+    if n < min_sightings:
+        return YearArrival(
+            year=year,
+            n=n,
+            arrival_doy=None,
+            used=False,
+            skipped_reason=f"only {n} sightings, need {min_sightings}",
+        )
+    return YearArrival(
+        year=year, n=n, arrival_doy=percentile_day(days), used=True
+    )
 
 
 @dataclass
@@ -247,16 +277,23 @@ class WindowArrival:
     years_available: int
 
 
-def window_arrival(years: Sequence[YearArrival]) -> WindowArrival:
-    """Take the median of a window's yearly arrival dates.
+def window_arrival(
+    years: Sequence[YearArrival],
+    min_years: int = MIN_YEARS_PER_WINDOW,
+) -> WindowArrival:
+    """Take the median of a window's usable yearly arrival dates.
 
     The median rather than the mean, because one freak year (a storm that
     grounded migrants, or a patch of missing data) should not drag the window.
+
+    Returns ``arrival_doy=None`` if too few years survived the minimum-sightings
+    rule. Two years is not a five-year median and reporting it as one would be
+    the kind of quiet overclaim this project is trying to avoid.
     """
-    usable = [y.arrival_doy for y in years if y.arrival_doy is not None]
-    if not usable:
+    usable = [y.arrival_doy for y in years if y.used and y.arrival_doy is not None]
+    if len(usable) < min_years:
         return WindowArrival(
-            arrival_doy=None, years_used=0, years_available=len(years)
+            arrival_doy=None, years_used=len(usable), years_available=len(years)
         )
     # median() of an even-length list averages the middle two, which can land
     # on a half day. Rounded here so that the shift printed on the page is
@@ -275,8 +312,8 @@ def shift_days(early: WindowArrival, late: WindowArrival) -> Optional[int]:
     everywhere it appears: **negative is earlier**. A warbler that used to
     arrive on 5 April and now arrives on 29 March shifted -7 days.
 
-    Returns None if either window produced no number, because a shift measured
-    against a missing value is not a shift.
+    Returns None if either window failed its minimum-years test, because a
+    shift measured against a missing number is not a shift.
     """
     if early.arrival_doy is None or late.arrival_doy is None:
         return None

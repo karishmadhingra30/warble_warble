@@ -22,11 +22,16 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from pipeline.arrivals import (  # noqa: E402
+    MIN_SIGHTINGS_PER_YEAR,
+    YearArrival,
     day_of_year_to_date,
     format_day_of_year,
     normalized_day_of_year,
     percentile_day,
     records_to_days,
+    shift_days,
+    window_arrival,
+    yearly_arrival,
 )
 
 
@@ -87,7 +92,101 @@ def test_percentile_rejects_empty_input():
 
 
 # ---------------------------------------------------------------------------
-# 2. Day of year converts to the right calendar date, including leap years
+# 2. Years under the minimum sighting count are skipped
+# ---------------------------------------------------------------------------
+
+
+def test_year_below_the_minimum_is_skipped_with_a_reason():
+    sparse = list(range(1, 50))  # 49 sightings, below the threshold of 100
+    result = yearly_arrival(2009, sparse)
+
+    assert result.used is False
+    assert result.arrival_doy is None
+    assert result.n == 49
+    assert "49" in result.skipped_reason
+
+
+def test_year_exactly_at_the_minimum_is_kept():
+    """The threshold is inclusive: 100 sightings is enough."""
+    days = list(range(1, MIN_SIGHTINGS_PER_YEAR + 1))
+    result = yearly_arrival(2010, days)
+
+    assert result.used is True
+    assert result.n == MIN_SIGHTINGS_PER_YEAR
+    assert result.arrival_doy == 10
+
+
+def test_window_median_uses_only_the_kept_years():
+    """A skipped year must not drag the window's median.
+
+    Four good years at days 100, 102, 104, 106 and one skipped year. The
+    median of the four kept years is 103. If the skipped year leaked in as a
+    zero or a None the answer would be very different.
+    """
+    years = [
+        YearArrival(2020, 500, 100, True),
+        YearArrival(2021, 500, 102, True),
+        YearArrival(2022, 20, None, False, "only 20 sightings, need 100"),
+        YearArrival(2023, 500, 104, True),
+        YearArrival(2024, 500, 106, True),
+    ]
+    window = window_arrival(years)
+
+    assert window.years_used == 4
+    assert window.years_available == 5
+    assert window.arrival_doy == 103  # median of 100,102,104,106 -> 103.0
+
+
+def test_window_with_too_few_usable_years_reports_nothing():
+    """Two years is not a five-year median, so the window returns None."""
+    years = [
+        YearArrival(2008, 500, 100, True),
+        YearArrival(2009, 10, None, False, "too few"),
+        YearArrival(2010, 10, None, False, "too few"),
+        YearArrival(2011, 10, None, False, "too few"),
+        YearArrival(2012, 500, 104, True),
+    ]
+    window = window_arrival(years)
+
+    assert window.arrival_doy is None
+    assert window.years_used == 2
+
+
+# ---------------------------------------------------------------------------
+# 3. The sign of the shift: negative means earlier
+# ---------------------------------------------------------------------------
+
+
+def test_shift_is_negative_when_the_bird_arrives_earlier():
+    early = window_arrival([YearArrival(y, 500, 95, True) for y in range(2008, 2013)])
+    late = window_arrival([YearArrival(y, 500, 88, True) for y in range(2020, 2025)])
+
+    assert shift_days(early, late) == -7
+
+
+def test_shift_is_positive_when_the_bird_arrives_later():
+    early = window_arrival([YearArrival(y, 500, 88, True) for y in range(2008, 2013)])
+    late = window_arrival([YearArrival(y, 500, 95, True) for y in range(2020, 2025)])
+
+    assert shift_days(early, late) == 7
+
+
+def test_shift_is_zero_when_nothing_changed():
+    early = window_arrival([YearArrival(y, 500, 91, True) for y in range(2008, 2013)])
+    late = window_arrival([YearArrival(y, 500, 91, True) for y in range(2020, 2025)])
+
+    assert shift_days(early, late) == 0
+
+
+def test_shift_is_none_when_a_window_is_missing():
+    early = window_arrival([YearArrival(2008, 10, None, False, "too few")])
+    late = window_arrival([YearArrival(y, 500, 91, True) for y in range(2020, 2025)])
+
+    assert shift_days(early, late) is None
+
+
+# ---------------------------------------------------------------------------
+# 4. Day of year converts to the right calendar date, including leap years
 # ---------------------------------------------------------------------------
 
 
@@ -146,7 +245,7 @@ def test_normalised_day_numbers_round_trip_to_the_right_date():
 
 
 # ---------------------------------------------------------------------------
-# 3. Turning GBIF rows into day numbers
+# 5. Turning GBIF rows into day numbers
 # ---------------------------------------------------------------------------
 
 
