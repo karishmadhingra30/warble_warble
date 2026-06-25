@@ -1,0 +1,249 @@
+/*
+  Styles for the warbler arrivals page.
+
+  Written as one flat stylesheet with no preprocessor, because the whole point
+  of this site is that it has no build step: what is in this folder is exactly
+  what GitHub Pages serves.
+
+  Colours are declared once as custom properties on :root and then referenced
+  by role everywhere else. That is what makes dark mode a matter of
+  redeclaring eight values instead of hunting through the file.
+*/
+
+:root {
+  color-scheme: light;
+
+  /* Surfaces and ink */
+  --surface-page: #fcfcfb;
+  --surface-card: #ffffff;
+  --border: #e6e5e0;
+  --grid: #eeede9;
+  --text-primary: #0b0b0b;
+  --text-secondary: #52514e;
+  --text-muted: #77756e;
+
+  /* The two data colours. Both pass the colourblind-separation and
+     contrast checks against the surfaces above and below. Migrants are
+     slot 1 (blue); the resident controls are slot 2 (orange) so they read
+     as a different kind of thing, not just another bird. */
+  --series-migrant: #2a78d6;
+  --series-control: #eb6834;
+  --series-flagged: #77756e;
+
+  --measure: 34rem;         /* comfortable reading width for body text */
+  --radius: 10px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --surface-page: #1a1a19;
+    --surface-card: #222221;
+    --border: #35342f;
+    --grid: #2c2b28;
+    --text-primary: #ffffff;
+    --text-secondary: #c3c2b7;
+    --text-muted: #9b9a90;
+    --series-migrant: #3987e5;
+    --series-control: #d95926;
+    --series-flagged: #9b9a90;
+  }
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--surface-page);
+  color: var(--text-primary);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+               "Helvetica Neue", Arial, sans-serif;
+  font-size: 17px;
+  line-height: 1.6;
+  -webkit-text-size-adjust: 100%;
+}
+
+main {
+  max-width: 54rem;
+  /* The 16px side padding is what keeps the page off the edge of a phone
+     screen. Everything inside is free to be full width. */
+  margin: 0 auto;
+  padding: 2.5rem 1rem 3rem;
+}
+
+/* -- headline ----------------------------------------------------------- */
+
+.hero { margin-bottom: 2.5rem; }
+
+.eyebrow {
+  margin: 0 0 0.5rem;
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+h1 {
+  margin: 0 0 1rem;
+  font-size: clamp(1.9rem, 6vw, 2.9rem);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  font-weight: 700;
+}
+
+.answer {
+  margin: 0 0 0.75rem;
+  max-width: var(--measure);
+  font-size: clamp(1.05rem, 3.2vw, 1.3rem);
+  line-height: 1.45;
+  color: var(--text-primary);
+}
+
+.subhead {
+  margin: 0;
+  max-width: var(--measure);
+  color: var(--text-secondary);
+  font-size: 0.98rem;
+}
+
+/* -- panels ------------------------------------------------------------- */
+
+.panel {
+  margin: 0 0 2.5rem;
+  padding: 1.5rem;
+  background: var(--surface-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.panel h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1.25rem;
+  letter-spacing: -0.01em;
+}
+
+.lede {
+  margin: 0 0 1.25rem;
+  max-width: var(--measure);
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+}
+
+.footnote {
+  margin: 1rem 0 0;
+  max-width: var(--measure);
+  color: var(--text-muted);
+  font-size: 0.86rem;
+}
+
+.notice {
+  margin: 0 0 2.5rem;
+  padding: 1.25rem 1.5rem;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-card);
+}
+
+.notice h2 { margin: 0 0 0.5rem; font-size: 1.1rem; }
+.notice p { margin: 0 0 0.75rem; max-width: var(--measure); color: var(--text-secondary); font-size: 0.95rem; }
+.notice p:last-child { margin-bottom: 0; }
+
+code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.88em;
+  background: var(--grid);
+  padding: 0.1em 0.35em;
+  border-radius: 4px;
+}
+
+/* -- charts ------------------------------------------------------------- */
+
+/*
+  The container's height is set in JS from the number of rows, so the x-axis
+  band always has room. A fixed height here is how you end up with a tiny
+  nested scrollbar eating the axis labels.
+*/
+.chart-box { position: relative; width: 100%; }
+.chart-box canvas { display: block; width: 100% !important; }
+
+/* -- footer ------------------------------------------------------------- */
+
+.site-footer {
+  border-top: 1px solid var(--border);
+  padding: 1.5rem 1rem 3rem;
+  max-width: 54rem;
+  margin: 0 auto;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.site-footer p { margin: 0 0 0.6rem; }
+.site-footer a { color: var(--text-secondary); }
+
+/* -- the colour key ----------------------------------------------------- */
+
+.color-key {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1.25rem;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.color-key li { display: flex; align-items: center; gap: 0.45rem; }
+
+.swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+}
+
+.excluded-list {
+  margin: 0.4rem 0 0;
+  padding-left: 1.1rem;
+  color: var(--text-muted);
+  font-size: 0.86rem;
+}
+
+.excluded-list li { margin-bottom: 0.35rem; }
+.excluded-list strong { color: var(--text-secondary); }
+
+/* -- the three control numbers ------------------------------------------ */
+
+.stat-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+  margin: 1.25rem 0 0;
+}
+
+.stat {
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-page);
+}
+
+.stat-net { border-color: var(--series-migrant); }
+
+.stat-value {
+  display: block;
+  font-size: clamp(1.1rem, 3.4vw, 1.5rem);
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  /* Text keeps text colours. The number is not a series, so it does not wear
+     a series colour. */
+  color: var(--text-primary);
+}
+
+.stat-label {
+  display: block;
+  margin-top: 0.3rem;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}

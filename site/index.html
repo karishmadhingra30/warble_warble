@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Are California's warblers arriving earlier?</title>
+<meta name="description" content="Fifteen years of eBird records, asked one question: do migrating warblers reach California earlier in spring than they used to?">
+
+<link rel="stylesheet" href="styles.css">
+
+<!-- A tiny inline icon, so browsers stop asking the server for /favicon.ico. -->
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>&#128038;</text></svg>">
+
+<!--
+  Chart.js draws the two charts on this page. It is loaded from a CDN rather
+  than installed, because this site has no build step: the whole thing is
+  three files and a JSON document served as-is by GitHub Pages.
+-->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" defer></script>
+<script src="app.js" defer></script>
+</head>
+
+<body>
+<main>
+
+  <!-- 1. Headline and the one-sentence answer, both written from the data
+          by app.js rather than typed here, so they cannot drift out of date. -->
+  <header class="hero">
+    <p class="eyebrow">A small data project</p>
+    <h1>Are California's warblers arriving earlier?</h1>
+    <p class="answer" id="answer">Loading the results&hellip;</p>
+    <p class="subhead" id="subhead"></p>
+  </header>
+
+  <!-- Shown instead of the charts when arrivals.json holds no results yet. -->
+  <section class="notice" id="empty-state" hidden>
+    <h2>No results yet</h2>
+    <p>
+      This page is working correctly. It is reading
+      <code>data/arrivals.json</code>, and that file does not contain any
+      measurements yet, so there is nothing to draw.
+    </p>
+    <p>
+      To fill it in, run the pipeline once on your own machine:
+      <code>python pipeline/build.py</code>, then commit the JSON file it
+      writes. Nothing is shown here in the meantime, because the alternative
+      would be showing numbers nobody measured.
+    </p>
+  </section>
+
+  <!-- 2. The main chart: one row per species, a dot for each window. -->
+  <section class="panel" id="main-chart-panel" hidden>
+    <h2>How much the arrival date moved</h2>
+    <p class="lede">
+      Each row is one bird. The hollow dot is where its arrival date sat in
+      <span id="early-window-label">the early window</span>; the filled dot is
+      <span id="late-window-label">the late window</span>. A line running
+      leftwards means the bird now arrives earlier in the year.
+    </p>
+
+    <div class="chart-box" id="main-chart-box">
+      <canvas id="main-chart" aria-label="Arrival date shift for each species" role="img"></canvas>
+    </div>
+
+    <!-- What the colours mean. Chart.js's own legend covers the two windows;
+         this covers the kinds of bird, so no colour on the page is left
+         unexplained. Written by app.js from whatever is actually shown. -->
+    <ul class="color-key" id="color-key"></ul>
+
+    <p class="footnote">
+      The two resident birds sit far to the left, and that is not a mistake.
+      A bird that is here all year has already been seen thousands of times by
+      mid-January, so this method says it &ldquo;arrives&rdquo; in January. For
+      them, only the <em>length</em> of the line means anything, and it should
+      be nothing.
+    </p>
+
+    <div id="excluded-note" hidden></div>
+  </section>
+
+  <!-- The control comparison. Three numbers, no chart: the story here is a
+       single subtraction, and a chart of three values would bury it. -->
+  <section class="panel" id="control-panel" hidden>
+    <h2>What the control birds say</h2>
+    <p class="lede">
+      California Towhee and Oak Titmouse hold the same few acres all year.
+      Neither can possibly arrive earlier. So whatever shift this method
+      reports for them is the method drifting, and that much of the warbler
+      shift is not news about birds.
+    </p>
+
+    <div class="stat-row">
+      <div class="stat">
+        <span class="stat-value" id="stat-warblers"></span>
+        <span class="stat-label">median warbler shift</span>
+      </div>
+      <div class="stat">
+        <span class="stat-value" id="stat-controls"></span>
+        <span class="stat-label">median resident shift</span>
+      </div>
+      <div class="stat stat-net">
+        <span class="stat-value" id="stat-net"></span>
+        <span class="stat-label">left over, after the drift</span>
+      </div>
+    </div>
+
+    <p class="footnote" id="control-verdict"></p>
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  <p id="generated-at"></p>
+</footer>
+
+</body>
+</html>
