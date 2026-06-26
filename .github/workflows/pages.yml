@@ -1,0 +1,65 @@
+# Publishes the site/ folder to GitHub Pages on every push to main.
+#
+# What this workflow does NOT do: run the Python pipeline. That is deliberate.
+# A full GBIF download takes an hour or two and hits a free public API
+# thousands of times; doing it on every push would be rude to GBIF and slow
+# for us, and it would mean the published site could change without anyone
+# reviewing the change.
+#
+# So the data is refreshed by hand:
+#
+#   python pipeline/build.py        # on your laptop, reads GBIF
+#   git add site/data/arrivals.json # commit the numbers you just looked at
+#   git push                        # this workflow publishes them
+#
+# Turning it on: repository Settings -> Pages -> Source: "GitHub Actions".
+# Until that is set, this workflow runs and then fails at the deploy step.
+
+name: Deploy site to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  # Lets you re-publish from the Actions tab without pushing anything.
+  workflow_dispatch:
+
+# The permissions the official deploy action needs. `id-token` is for the
+# OIDC handshake that proves to Pages this deployment came from this repo.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# If two pushes land close together, let the newer one finish rather than
+# cancelling it: a half-finished deploy is worse than a slightly stale one.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Package the site folder
+        uses: actions/upload-pages-artifact@v3
+        with:
+          # Only site/ is published. The pipeline, the tests and the cached
+          # GBIF responses are not part of the website.
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
