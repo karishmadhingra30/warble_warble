@@ -78,6 +78,39 @@
     <div id="excluded-note" hidden></div>
   </section>
 
+  <!-- 3. Species detail. Pick a bird and see its ten individual springs,
+          because a single shift number hides whether it was a steady drift
+          or one odd year doing all the work. -->
+  <section class="panel" id="detail-panel" hidden>
+    <h2>One species at a time</h2>
+    <p class="lede">
+      The shift is a median of five springs against five springs. This is what
+      those individual springs looked like. Pick a bird:
+    </p>
+
+    <div class="chip-row" id="species-chips" role="tablist"
+         aria-label="Choose a species"></div>
+
+    <h3 class="detail-name" id="detail-name"></h3>
+    <p class="detail-note" id="detail-note"></p>
+
+    <div class="chart-box detail-chart-box">
+      <canvas id="detail-chart" aria-label="Arrival date by year" role="img"></canvas>
+    </div>
+
+    <!-- The same numbers as a table. This is how the sightings-per-year
+         count gets shown without putting a second scale on the chart, and it
+         is what a screen reader or a printout falls back to. -->
+    <table class="detail-table" id="detail-table">
+      <caption>Every spring, including the ones that were too thin to use</caption>
+      <thead>
+        <tr><th scope="col">Year</th><th scope="col">Arrival</th>
+            <th scope="col">Sightings</th><th scope="col">Used</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </section>
+
   <!-- The control comparison. Three numbers, no chart: the story here is a
        single subtraction, and a chart of three values would bury it. -->
   <section class="panel" id="control-panel" hidden>

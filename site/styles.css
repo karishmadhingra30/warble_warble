@@ -247,3 +247,74 @@ code {
   font-size: 0.78rem;
   color: var(--text-muted);
 }
+
+/* -- species detail ----------------------------------------------------- */
+
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0 0 1.5rem;
+}
+
+.chip {
+  font: inherit;
+  font-size: 0.85rem;
+  padding: 0.3rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-page);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.chip:hover { border-color: var(--text-muted); color: var(--text-primary); }
+
+.chip[aria-selected="true"] {
+  background: var(--series-migrant);
+  border-color: var(--series-migrant);
+  color: #ffffff;
+}
+
+.chip[aria-selected="true"].chip-control {
+  background: var(--series-control);
+  border-color: var(--series-control);
+}
+
+.chip:focus-visible { outline: 2px solid var(--text-primary); outline-offset: 2px; }
+
+.detail-name { margin: 0 0 0.25rem; font-size: 1.05rem; }
+.detail-name em { color: var(--text-muted); font-weight: 400; font-size: 0.9em; }
+
+.detail-note {
+  margin: 0 0 1rem;
+  max-width: var(--measure);
+  color: var(--text-muted);
+  font-size: 0.86rem;
+}
+
+.detail-chart-box { height: 260px; }
+
+.detail-table {
+  width: 100%;
+  margin-top: 1.25rem;
+  border-collapse: collapse;
+  font-size: 0.86rem;
+}
+
+.detail-table caption {
+  text-align: left;
+  padding-bottom: 0.5rem;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+}
+
+.detail-table th, .detail-table td {
+  text-align: right;
+  padding: 0.35rem 0.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.detail-table th:first-child, .detail-table td:first-child { text-align: left; }
+.detail-table thead th { color: var(--text-muted); font-weight: 600; }
+.detail-table tbody tr.skipped { color: var(--text-muted); }

@@ -156,6 +156,8 @@ function buildAnswer(data) {
  * window) and a filled dot (the late window). Fill carries the window, so the
  * two windows are still distinguishable with the colour removed.
  */
+let mainChart = null;
+
 function drawMainChart(data) {
   // Excluded species are left out of this chart on purpose. Their arrival
   // date is not an arrival date (wintering birds dominate the early part of
@@ -182,7 +184,7 @@ function drawMainChart(data) {
 
   const canvas = document.getElementById('main-chart');
 
-  new Chart(canvas, {
+  mainChart = new Chart(canvas, {
     data: {
       labels,
       datasets: [
@@ -284,6 +286,33 @@ function drawMainChart(data) {
         },
       },
     },
+  });
+}
+
+/**
+ * Let a click on a row of the main chart open that species' detail view.
+ *
+ * Added on top of the buttons, never instead of them: a canvas cannot be
+ * tabbed to or announced, so it can offer a shortcut but must not be the
+ * only way in.
+ */
+function wireMainChartClicks(data, selectSpecies) {
+  if (!mainChart) return;
+  const canvas = document.getElementById('main-chart');
+  canvas.style.cursor = 'pointer';
+  canvas.addEventListener('click', (event) => {
+    // 'y' mode with intersect false means "whichever row the pointer is
+    // nearest vertically", so the whole row is a hit target, not just the dot.
+    const hits = mainChart.getElementsAtEventForMode(
+      event, 'y', { intersect: false }, true
+    );
+    if (!hits.length) return;
+    const name = mainChart.data.labels[hits[0].index];
+    const row = data.species.find((s) => s.common_name === name);
+    if (row) {
+      selectSpecies(row);
+      document.getElementById('detail-panel').scrollIntoView({ behavior: 'smooth' });
+    }
   });
 }
 
@@ -403,6 +432,180 @@ function drawControlPanel(data) {
 }
 
 // ---------------------------------------------------------------------------
+// Species detail
+// ---------------------------------------------------------------------------
+
+// Chart.js instances have to be destroyed before the canvas is reused, or the
+// old chart keeps handling mouse events over the new one.
+let detailChart = null;
+
+/**
+ * Draw one species' ten individual springs.
+ *
+ * Why this view exists: a shift of "7 days earlier" can be a steady slide
+ * across fifteen years, or four unremarkable springs and one very odd one.
+ * Those mean different things, and the single number cannot tell them apart.
+ *
+ * The two windows are drawn as two segments of one line with a real gap
+ * between them. Joining 2012 to 2020 with a straight line would draw eight
+ * years we never measured.
+ */
+function drawDetail(data, speciesRow) {
+  document.getElementById('detail-name').innerHTML =
+    `${speciesRow.common_name} <em>${speciesRow.scientific_name}</em>`;
+  document.getElementById('detail-note').textContent =
+    speciesRow.reliability_note || '';
+
+  const years = speciesRow.yearly.map((y) => y.year);
+  const earlyYears = new Set(
+    range(data.windows.early[0], data.windows.early[1])
+  );
+
+  // One dataset per window, each null outside its own years, so the line
+  // breaks where the data does.
+  const seriesFor = (inWindow) =>
+    speciesRow.yearly.map((y) =>
+      inWindow(y.year) && y.used ? y.arrival_doy : null
+    );
+
+  const color = speciesRow.is_control
+    ? cssColor('--series-control')
+    : cssColor('--series-migrant');
+
+  if (detailChart) detailChart.destroy();
+
+  detailChart = new Chart(document.getElementById('detail-chart'), {
+    type: 'line',
+    data: {
+      labels: years,
+      datasets: [
+        {
+          label: 'arrival date',
+          data: seriesFor((y) => earlyYears.has(y)),
+          borderColor: color,
+          backgroundColor: color,
+          borderWidth: 2,
+          pointRadius: 4,
+          pointHoverRadius: 7,
+          spanGaps: false,
+          tension: 0,
+        },
+        {
+          label: 'arrival date (late window)',
+          data: seriesFor((y) => !earlyYears.has(y)),
+          borderColor: color,
+          backgroundColor: color,
+          borderWidth: 2,
+          pointRadius: 4,
+          pointHoverRadius: 7,
+          spanGaps: false,
+          tension: 0,
+        },
+      ],
+    },
+    options: {
+      maintainAspectRatio: false,
+      responsive: true,
+      interaction: { mode: 'index', intersect: false },
+      scales: {
+        y: {
+          title: { display: true, text: 'arrival date', color: cssColor('--text-muted') },
+          ticks: { color: cssColor('--text-secondary'), callback: (v) => formatDay(v) },
+          grid: { color: cssColor('--grid'), drawTicks: false },
+          border: { color: cssColor('--border') },
+        },
+        x: {
+          ticks: { color: cssColor('--text-secondary') },
+          grid: { display: false },
+          border: { color: cssColor('--border') },
+        },
+      },
+      plugins: {
+        // One measure, one colour, and the heading already names the bird,
+        // so a legend box would only add furniture.
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: (item) => {
+              const row = speciesRow.yearly[item.dataIndex];
+              if (row.arrival_doy === null) return 'not enough sightings';
+              return `${formatDay(row.arrival_doy)} \u00b7 ${row.n.toLocaleString()} sightings`;
+            },
+          },
+        },
+      },
+    },
+  });
+
+  drawDetailTable(speciesRow);
+}
+
+/** Inclusive integer range, e.g. range(2008, 2012). */
+function range(from, to) {
+  const out = [];
+  for (let n = from; n <= to; n++) out.push(n);
+  return out;
+}
+
+/** The same yearly numbers as a table, including the sightings count. */
+function drawDetailTable(speciesRow) {
+  const body = document.querySelector('#detail-table tbody');
+  body.innerHTML = '';
+  for (const year of speciesRow.yearly) {
+    const tr = document.createElement('tr');
+    if (!year.used) tr.className = 'skipped';
+    const cells = [
+      String(year.year),
+      year.arrival_doy === null ? '\u2014' : formatDay(year.arrival_doy),
+      year.n.toLocaleString(),
+      year.used ? 'yes' : 'too few',
+    ];
+    cells.forEach((text, i) => {
+      const cell = document.createElement(i === 0 ? 'th' : 'td');
+      if (i === 0) cell.scope = 'row';
+      cell.textContent = text;
+      tr.append(cell);
+    });
+    body.append(tr);
+  }
+}
+
+/**
+ * Build the row of species buttons and wire up selection.
+ *
+ * Real buttons rather than clickable canvas regions, so the detail view can
+ * be reached with a keyboard and read by a screen reader. Clicking the main
+ * chart is added on top of this, not instead of it.
+ */
+function buildSpeciesChips(data) {
+  const row = document.getElementById('species-chips');
+  row.innerHTML = '';
+
+  const select = (speciesRow) => {
+    for (const chip of row.children) {
+      chip.setAttribute('aria-selected', String(chip.dataset.name === speciesRow.common_name));
+    }
+    drawDetail(data, speciesRow);
+  };
+
+  for (const speciesRow of data.species) {
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'chip' + (speciesRow.is_control ? ' chip-control' : '');
+    chip.textContent = speciesRow.common_name;
+    chip.dataset.name = speciesRow.common_name;
+    chip.setAttribute('role', 'tab');
+    chip.setAttribute('aria-selected', 'false');
+    chip.addEventListener('click', () => select(speciesRow));
+    row.append(chip);
+  }
+
+  document.getElementById('detail-panel').hidden = false;
+  select(data.species[0]);
+  return select;
+}
+
+// ---------------------------------------------------------------------------
 // Start here
 // ---------------------------------------------------------------------------
 
@@ -432,6 +635,11 @@ function render(data) {
   drawColorKey(data);
   drawExclusions(data);
   drawControlPanel(data);
+
+  // The chips own the detail view; the main chart just borrows their
+  // selection function so a click on a row does the same thing.
+  const selectSpecies = buildSpeciesChips(data);
+  wireMainChartClicks(data, selectSpecies);
 }
 
 fetch(DATA_URL)
