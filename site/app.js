@@ -26,15 +26,37 @@ function cssColor(name) {
 // Formatting
 // ---------------------------------------------------------------------------
 
+// Month names spelled out rather than taken from the browser's locale, so
+// every reader sees the same label and a screenshot in the README matches
+// what the page shows.
+const MONTH_NAMES = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+];
+
 /**
- * Render a day-of-year number for display.
+ * Render a day-of-year number as a calendar date, e.g. "April 5".
  *
- * Right now this shows the raw number. That is a placeholder: "day 95" is not
- * how anybody thinks about dates, and it gets replaced with a calendar date.
+ * Nobody thinks in "day 95". Every number that reaches the reader goes
+ * through here.
+ *
+ * Two details that have to match the Python side exactly, or the page will
+ * disagree with the JSON it is reading:
+ *
+ *  - 2001 is the reference year. It is not a leap year, which is the whole
+ *    point: the pipeline already removed 29 February from its day numbers,
+ *    so translating them back through a leap year would shift every date
+ *    after February by one day.
+ *  - Halves round up, the way people expect. A window's arrival date is a
+ *    median, and the median of an even number of years lands on a half day.
  */
 function formatDay(doy) {
   if (doy === null || doy === undefined) return 'no data';
-  return 'day ' + Math.round(doy);
+  const whole = Math.min(365, Math.max(1, Math.floor(doy + 0.5)));
+  // Built in UTC throughout, so a reader east of Greenwich does not see
+  // every date slip back by one.
+  const when = new Date(Date.UTC(2001, 0, 1) + (whole - 1) * 86400000);
+  return `${MONTH_NAMES[when.getUTCMonth()]} ${when.getUTCDate()}`;
 }
 
 /** "7 days earlier", "3 days later", or "no change". */
@@ -244,7 +266,13 @@ function drawMainChart(data) {
           title: { display: true, text: 'arrival date', color: cssColor('--text-muted') },
           ticks: {
             color: cssColor('--text-secondary'),
-            callback: (value) => formatDay(value),
+            // Whole days only. Two ticks a third of a day apart would print
+            // the same calendar date twice.
+            precision: 0,
+            callback: (value) =>
+              (Number.isInteger(value) ? formatDay(value) : null),
+            maxRotation: 0,
+            autoSkipPadding: 12,
           },
           grid: { color: cssColor('--grid'), drawTicks: false },
           border: { color: cssColor('--border') },
@@ -510,7 +538,11 @@ function drawDetail(data, speciesRow) {
       scales: {
         y: {
           title: { display: true, text: 'arrival date', color: cssColor('--text-muted') },
-          ticks: { color: cssColor('--text-secondary'), callback: (v) => formatDay(v) },
+          ticks: {
+            color: cssColor('--text-secondary'),
+            precision: 0,
+            callback: (v) => (Number.isInteger(v) ? formatDay(v) : null),
+          },
           grid: { color: cssColor('--grid'), drawTicks: false },
           border: { color: cssColor('--border') },
         },
