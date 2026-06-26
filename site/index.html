@@ -140,9 +140,148 @@
     <p class="footnote" id="control-verdict"></p>
   </section>
 
+
+  <!-- 4. How this was measured. Plain language, no jargon that is not
+          immediately unpacked. -->
+  <section class="panel prose">
+    <h2>How this was measured</h2>
+
+    <h3>Where the numbers come from</h3>
+    <p>
+      Every sighting here is a birdwatcher's eBird checklist entry, made
+      public through GBIF, recorded in California with map coordinates. One
+      dataset only, for both time windows, so a change in who publishes data
+      cannot masquerade as a change in when birds arrive.
+    </p>
+
+    <h3>Why not the first sighting of spring?</h3>
+    <p>
+      Because it mostly measures birdwatchers. Far more people use eBird now
+      than in 2010. With more people out looking, somebody catches the front
+      of the migration sooner, even if the birds are doing exactly what they
+      always did. Compare a first-sighting date from 2010 with one from 2024
+      and you will find &ldquo;earlier arrival&rdquo; that is really
+      &ldquo;more binoculars&rdquo;.
+    </p>
+
+    <h3>What we use instead</h3>
+    <p>
+      For each bird, in each spring, we take the day by which one tenth of
+      that year's sightings had happened. Think of the spring's sightings as
+      a crowd filing through a door: the first person through is a fluke, but
+      the moment the first tenth are through is a property of the crowd.
+      Doubling the number of people does not move it.
+    </p>
+    <p>
+      Each five-year window gets the median of its five yearly dates, and the
+      shift is the late window minus the early one. A species-year with fewer
+      than 100 sightings is dropped, because a tenth of twelve sightings is
+      just the second sighting wearing a disguise.
+    </p>
+
+    <h3>What the control tells us</h3>
+    <p>
+      A percentile is much steadier than a first sighting, but it is not
+      immune. If the extra observers bird at different times or in different
+      places, it moves too. That is what the two resident birds are for. They
+      cannot arrive earlier, so their shift is a direct measurement of how
+      much this method drifts on its own, and it is subtracted from the
+      headline.
+    </p>
+  </section>
+
+  <!-- 5. Limits. Stated plainly, before anybody else has to point them out. -->
+  <section class="panel prose">
+    <h2>What this cannot tell you</h2>
+    <ul class="limits">
+      <li>
+        <strong>There are far more birdwatchers now.</strong> The percentile
+        and the control birds are both attempts to handle this, and neither is
+        a complete fix. Treat a shift smaller than the control's shift as
+        noise.
+      </li>
+      <li>
+        <strong>Sightings are not a count of birds.</strong> They are a count
+        of times somebody wrote a bird down. A species can become easier to
+        find without becoming more numerous.
+      </li>
+      <li>
+        <strong>California is large.</strong> A statewide average hides the
+        coast behaving differently from the Central Valley and the Sierra.
+        A bird can arrive earlier in one and later in another and show nothing
+        here.
+      </li>
+      <li>
+        <strong>Some of these birds spend the winter here.</strong> A January
+        sighting of a bird that never left is not an arrival. Species where
+        this swamps the signal are dropped and named; species where it is
+        mild are marked. The decision was made from the monthly counts, not
+        from memory.
+      </li>
+      <li>
+        <strong>Two windows is not a trend.</strong> This compares one
+        five-year block against another. It cannot tell you whether the change
+        was steady, sudden, or is still going on.
+      </li>
+      <li>
+        <strong>Nothing here explains why.</strong> Earlier arrival is
+        consistent with warming springs, but this project measures timing and
+        nothing else. It offers no evidence about the cause.
+      </li>
+    </ul>
+  </section>
+
 </main>
 
+<!-- 6. Credit where it is required. GBIF and eBird both ask to be cited in
+        a particular way, and both are free to use because people follow it. -->
 <footer class="site-footer">
+  <h2 class="footer-heading">Data and credit</h2>
+
+  <p>
+    Occurrence data downloaded from the
+    <a href="https://www.gbif.org/">Global Biodiversity Information Facility</a>
+    via the
+    <a href="https://techdocs.gbif.org/en/openapi/v1/occurrence">GBIF occurrence search API</a>.
+  </p>
+
+  <p class="citation">
+    GBIF.org. <em>GBIF Occurrence Search</em>.
+    <a href="https://www.gbif.org/occurrence/search">https://www.gbif.org/occurrence/search</a>
+  </p>
+
+  <p>
+    All records come from one dataset:
+    <a href="https://www.gbif.org/dataset/4fa7b334-ce0d-4e88-aaae-2e0c138d049e">EOD &ndash; eBird Observation Dataset</a>,
+    published by the Cornell Lab of Ornithology.
+  </p>
+
+  <p class="citation">
+    Cornell Lab of Ornithology. <em>EOD &ndash; eBird Observation Dataset</em>.
+    Cornell Lab of Ornithology. Occurrence dataset
+    <a href="https://doi.org/10.15468/aomfnb">https://doi.org/10.15468/aomfnb</a>
+    accessed via GBIF.org.
+  </p>
+
+  <p class="citation">
+    eBird. <em>eBird: An online database of bird distribution and abundance</em>
+    [web application]. eBird, Cornell Lab of Ornithology, Ithaca, New York.
+    <a href="https://www.ebird.org">https://www.ebird.org</a>
+  </p>
+
+  <p>
+    A note on citing properly: GBIF asks that work using data pulled through
+    the search API cite a
+    <a href="https://www.gbif.org/citation-guidelines">derived dataset</a>,
+    which mints a DOI for the exact records used. If you build on these
+    numbers rather than just reading them, do that.
+  </p>
+
+  <p>
+    Code, method and every decision behind these numbers:
+    <a href="https://github.com/karishmadhingra30/warble_warble">github.com/karishmadhingra30/warble_warble</a>.
+  </p>
+
   <p id="generated-at"></p>
 </footer>
 

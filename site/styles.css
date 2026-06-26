@@ -318,3 +318,50 @@ code {
 .detail-table th:first-child, .detail-table td:first-child { text-align: left; }
 .detail-table thead th { color: var(--text-muted); font-weight: 600; }
 .detail-table tbody tr.skipped { color: var(--text-muted); }
+
+/* -- prose sections ------------------------------------------------------ */
+
+.prose h3 {
+  margin: 1.5rem 0 0.4rem;
+  font-size: 0.95rem;
+  letter-spacing: 0.01em;
+  color: var(--text-primary);
+}
+
+.prose h3:first-of-type { margin-top: 1rem; }
+
+.prose p {
+  margin: 0 0 0.85rem;
+  max-width: var(--measure);
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+}
+
+.limits {
+  margin: 1rem 0 0;
+  padding-left: 1.1rem;
+  max-width: var(--measure);
+}
+
+.limits li {
+  margin-bottom: 0.8rem;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+}
+
+.limits strong { color: var(--text-primary); }
+
+.footer-heading {
+  margin: 0 0 0.8rem;
+  font-size: 0.82rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.citation {
+  padding-left: 0.8rem;
+  border-left: 2px solid var(--border);
+  color: var(--text-secondary);
+}
