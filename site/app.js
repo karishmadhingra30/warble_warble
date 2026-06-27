@@ -165,6 +165,39 @@ function buildAnswer(data) {
 // The main chart
 // ---------------------------------------------------------------------------
 
+// Below this width the chart is drawn for a phone: wrapped species labels and
+// taller rows. 600px is where "Black-throated Gray Warbler" stops fitting on
+// one line beside a usable plot area.
+const NARROW_WIDTH = 600;
+
+function isNarrow() {
+  return window.innerWidth < NARROW_WIDTH;
+}
+
+/**
+ * Break a species name into lines short enough to fit the axis gutter.
+ *
+ * Chart.js renders an array of strings as a multi-line tick label. Without
+ * this, a long name on a phone gets silently cut off from the left, so
+ * "Black-throated Gray Warbler" reads as "-throated Gray Warbler", which
+ * looks like a bug in the data rather than a layout problem.
+ */
+function wrapLabel(text, maxChars) {
+  const words = text.split(' ');
+  const lines = [];
+  let line = '';
+  for (const word of words) {
+    if (line && (line + ' ' + word).length > maxChars) {
+      lines.push(line);
+      line = word;
+    } else {
+      line = line ? line + ' ' + word : word;
+    }
+  }
+  if (line) lines.push(line);
+  return lines;
+}
+
 /**
  * Draw the dumbbell chart: one row per species, a dot for each window, a line
  * between them.
@@ -200,9 +233,11 @@ function drawMainChart(data) {
   const allDays = rows.flatMap((s) => [s.early_arrival_doy, s.late_arrival_doy]);
 
   // Height grows with the number of rows so the x-axis band is never squeezed
-  // out. 42px a row is enough for a 12px dot plus breathing space.
+  // out, and grows again on a phone where the labels wrap to two lines.
+  const narrow = isNarrow();
+  const rowHeight = narrow ? 58 : 42;
   const box = document.getElementById('main-chart-box');
-  box.style.height = (rows.length * 42 + 72) + 'px';
+  box.style.height = (rows.length * rowHeight + 76) + 'px';
 
   const canvas = document.getElementById('main-chart');
 
@@ -279,7 +314,13 @@ function drawMainChart(data) {
         },
         y: {
           type: 'category',
-          ticks: { color: cssColor('--text-primary'), font: { size: 13 } },
+          ticks: {
+            color: cssColor('--text-primary'),
+            font: { size: narrow ? 11 : 13 },
+            // Wrap rather than let Chart.js crop from the left.
+            callback: (value, index) => wrapLabel(labels[index], narrow ? 16 : 30),
+            autoSkip: false,
+          },
           grid: { display: false },
           border: { color: cssColor('--border') },
         },
@@ -314,6 +355,30 @@ function drawMainChart(data) {
         },
       },
     },
+  });
+}
+
+/**
+ * Redraw the main chart when the window crosses the phone/desktop boundary.
+ *
+ * Chart.js resizes itself, but the row height and the label wrapping are
+ * decided once at draw time. Rotating a phone, or dragging a desktop window
+ * narrow, would otherwise leave the old layout in place.
+ */
+function watchWidth(data, selectSpecies) {
+  let wasNarrow = isNarrow();
+  let timer = null;
+  window.addEventListener('resize', () => {
+    // Debounced: a drag fires resize dozens of times a second, and rebuilding
+    // a chart on every one of them is wasteful and visibly janky.
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      if (isNarrow() === wasNarrow) return;
+      wasNarrow = isNarrow();
+      if (mainChart) mainChart.destroy();
+      drawMainChart(data);
+      wireMainChartClicks(data, selectSpecies);
+    }, 200);
   });
 }
 
@@ -672,6 +737,7 @@ function render(data) {
   // selection function so a click on a row does the same thing.
   const selectSpecies = buildSpeciesChips(data);
   wireMainChartClicks(data, selectSpecies);
+  watchWidth(data, selectSpecies);
 }
 
 fetch(DATA_URL)

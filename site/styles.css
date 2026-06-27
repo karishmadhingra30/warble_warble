@@ -365,3 +365,37 @@ code {
   border-left: 2px solid var(--border);
   color: var(--text-secondary);
 }
+
+/* -- phones -------------------------------------------------------------
+   The main chart is the part that suffers most on a narrow screen: the
+   species names eat the width the plot needs. Reclaiming the panel padding
+   buys back about 32px of plot, and the labels wrap rather than crop (that
+   half is in app.js, where the chart is built).
+   ---------------------------------------------------------------------- */
+
+@media (max-width: 600px) {
+  body { font-size: 16px; }
+
+  main { padding: 1.75rem 1rem 2.5rem; }
+
+  .panel { padding: 1.15rem 0.9rem; }
+
+  /* The chart canvas may use the full panel width, gutters and all. */
+  .chart-box { margin: 0 -0.3rem; }
+
+  /* Three numbers side by side wrap to "4 days / earlier" and stop being
+     readable. One per row keeps each one on a single line. */
+  .stat-row { grid-template-columns: 1fr; }
+  .stat { display: flex; align-items: baseline; gap: 0.75rem; }
+  .stat-value { font-size: 1.15rem; flex: 0 0 auto; }
+  /* Pushed right and right-aligned, so the three rows line up as a column
+     of numbers on the left and a column of labels on the right. */
+  .stat-label { margin: 0 0 0 auto; text-align: right; }
+
+  .detail-table { font-size: 0.8rem; }
+  .detail-table th, .detail-table td { padding: 0.35rem 0.25rem; }
+
+  .chip { font-size: 0.8rem; padding: 0.28rem 0.6rem; }
+
+  .citation { font-size: 0.8rem; }
+}
