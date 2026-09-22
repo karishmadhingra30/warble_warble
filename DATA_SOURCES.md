@@ -99,29 +99,46 @@ mimics GBIF's response shapes: paging to the end of a result set, the
 the retry and backoff path, the twelve-month counting, the wintering
 classification, and the arrival arithmetic end to end.
 
-**Not yet verified against the live GBIF API.** The machine this was built on
-has outbound network access restricted to an allowlist that does not include
-`api.gbif.org`, so no real request has been made. Everything above is correct
-according to GBIF's own documentation, and the client is built to fail loudly
-rather than quietly if something differs.
+**Verified against the live GBIF API** on 2026-09-22:
 
-**Do this on your first real run:**
+- All ten taxon keys resolve to `ACCEPTED`, rank `SPECIES` nodes whose
+  canonical names match the names in `pipeline/species.py`.
+- Every filter narrows the result set the way it should. Probing Wilson's
+  Warbler in April 2024, one filter at a time:
+
+  | filters | records |
+  |---|---:|
+  | `taxonKey` alone | 27,582 |
+  | `+ datasetKey` (eBird only) | 27,090 |
+  | `+ country=US` | 22,742 |
+  | `+ gadmGid=USA.5_1` | 11,081 |
+  | the full set used by the pipeline | 11,081 |
+  | `stateProvince=California` instead of `gadmGid` | 11,223 |
+
+  The last two lines are the check on decision 1. The two California filters
+  agree to within 1.3%, and `gadmGid` is the slightly stricter of the two,
+  which is what you would expect from a filter computed from coordinates
+  rather than read from a text field.
+
+- Paging returns exactly what the count promises. Hermit Warbler, April 2010:
+  GBIF reported 157 records, the pager retrieved 157, and none were dropped
+  for want of a usable date.
+- The same probe shows the confound this project exists to handle. Wilson's
+  Warbler in April: **1,621** records in 2010, **11,081** in 2024. Seven times
+  the records in fourteen years. Almost none of that is seven times the birds.
+
+**Rate actually used.** The committed default is one request per second. The
+run that produced the published numbers used one every 0.5 seconds, about
+7,000 requests over roughly an hour, to keep the wall-clock time reasonable.
+That is still a modest load for this API, but it is worth stating rather than
+leaving the reader to assume the default.
+
+**Repeat these checks whenever you re-run:**
 
 ```bash
-python pipeline/build.py --taxon-keys
+python pipeline/build.py --taxon-keys      # then spot-check gbif.org/species/<key>
+python pipeline/build.py --monthly-report  # migrants near zero in December?
 ```
-
-It prints each species with the key GBIF returned. Open
-`https://www.gbif.org/species/<key>` for a few of them and confirm the bird is
-the one you meant. Then:
-
-```bash
-python pipeline/build.py --monthly-report
-```
-
-Check that the monthly counts look like a bird's year (migrants near zero in
-December, a spike in April) before trusting anything downstream. Record the
-date you checked in DECISIONS.md.
 
 ---
 
