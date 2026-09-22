@@ -237,10 +237,14 @@ Push to `main` and the workflow in `.github/workflows/pages.yml` publishes
 `site/`. It does **not** run the pipeline: data is refreshed by running it
 locally and committing the JSON.
 
-**Turning Pages on:** the workflow does it for itself. `configure-pages` runs
-with `enablement: true`, which switches the repository to building Pages from
-GitHub Actions on the first run. If you would rather set it by hand, it is
-repository **Settings** → **Pages** → **Source: GitHub Actions**.
+**Turning Pages on, once:** repository **Settings** → **Pages** →
+**Source: GitHub Actions**. Until that is done the workflow runs and fails at
+the Configure Pages step.
+
+This one step cannot be automated. `configure-pages` has an `enablement`
+option, but creating a Pages site needs admin rights on the repository and a
+workflow's token only has `pages: write` for deploying to a site that already
+exists. After the click, every later deploy is automatic.
 
 ---
 

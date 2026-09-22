@@ -12,10 +12,16 @@
 #   git add site/data/arrivals.json # commit the numbers you just looked at
 #   git push                        # this workflow publishes them
 #
-# Turning Pages on: the Configure Pages step below does it for you, using the
-# `pages: write` permission this workflow grants itself. If you would rather
-# do it by hand, it is repository Settings -> Pages -> Source: "GitHub
-# Actions", and then `enablement: true` becomes a no-op.
+# Turning Pages on, once, by hand: repository Settings -> Pages ->
+# Source: "GitHub Actions". Until that is done this workflow fails at the
+# Configure Pages step with "Get Pages site failed".
+#
+# This cannot be automated from here, and it was tried. configure-pages takes
+# an `enablement: true` option, but creating a Pages site needs admin rights
+# on the repository, and the token a workflow gets has `pages: write` for
+# deploying to an existing site only. With enablement on, the run fails with
+# "Create Pages site failed: Resource not accessible by integration", which
+# is a more confusing way to say the same thing. It is one click, once.
 
 name: Deploy site to GitHub Pages
 
@@ -47,11 +53,6 @@ jobs:
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
-        with:
-          # Turn Pages on for the repository if it is not on already, rather
-          # than failing and waiting for someone to click through Settings.
-          # This works because the job is granted `pages: write` above.
-          enablement: true
 
       - name: Package the site folder
         uses: actions/upload-pages-artifact@v3
