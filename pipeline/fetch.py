@@ -575,3 +575,128 @@ def classify_wintering(counts: dict[int, int], is_control: bool) -> tuple[str, s
         )
 
     return "good", None
+
+
+# ---------------------------------------------------------------------------
+# Arrival dates by counting, instead of by downloading every record
+# ---------------------------------------------------------------------------
+#
+# Why this path exists at all is worth knowing before you read it.
+#
+# The obvious way to find the 10th percentile day is to download every
+# sighting and sort them. That is what `spring_records` above does, and it is
+# correct. It is also unusable here: GBIF's occurrence search slows down
+# sharply as the offset grows. Measured against the live API, one page of 300
+# records took 1.8 seconds at offset 0, 1.5 seconds at offset 3,000, and over
+# 100 seconds at offset 11,400. Several species-years in this study run past
+# 30,000 records, so paging them would take days.
+#
+# A count query (`limit=0`) does not have this problem. It answers in under a
+# second whatever the size of the result set, because GBIF never has to
+# assemble any records.
+#
+# And a percentile does not actually need the records. It needs to know how
+# many sightings fell on or before each day. So this path asks that question
+# about a dozen times per species-year and binary searches for the answer.
+# Same number, roughly a hundredth of the requests.
+
+
+class SpringCounter:
+    """Answers "how many sightings by day N?" for one species in one spring.
+
+    Holds the six monthly counts for January to June so that a question about
+    any day costs at most one more request: the months before the day are
+    already summed, and only the partial month needs asking about.
+
+    One of these is built per species-year and thrown away afterwards.
+    """
+
+    def __init__(self, client: GbifClient, taxon_key: int, year: int) -> None:
+        self.client = client
+        self.taxon_key = taxon_key
+        self.year = year
+        self.base = client.base_occurrence_params(taxon_key)
+
+        # The six monthly totals, fetched once up front.
+        self.by_month: dict[int, int] = {
+            month: client.count(
+                {**self.base, "year": year, "month": month},
+                label=f"springmonth-{taxon_key}-{year}-{month:02d}",
+            )
+            for month in SPRING_MONTHS
+        }
+
+        # Running totals: prefix[m] is everything in months 1..m.
+        self.prefix: dict[int, int] = {}
+        running = 0
+        for month in SPRING_MONTHS:
+            running += self.by_month[month]
+            self.prefix[month] = running
+
+        self.total = running
+
+        # Binary search revisits days, so answers are remembered.
+        self._cache: dict[int, int] = {}
+
+    def cumulative_at(self, doy: int) -> int:
+        """Sightings on or before normalised day ``doy``, within this spring."""
+        if doy in self._cache:
+            return self._cache[doy]
+
+        month, day = arrivals_normalized_to_calendar(doy, self.year)
+        whole_months = self.prefix[month - 1] if month > 1 else 0
+
+        # The last calendar day of the month needs no extra request: the whole
+        # month is already counted. This is a real saving, because binary
+        # search lands on month boundaries often.
+        if day >= _days_in_month(self.year, month):
+            answer = self.prefix[month]
+        else:
+            partial = self.client.count(
+                {**self.base, "year": self.year, "month": month, "day": f"1,{day}"},
+                label=f"springday-{self.taxon_key}-{self.year}-{month:02d}-{day:02d}",
+            )
+            answer = whole_months + partial
+
+        self._cache[doy] = answer
+        return answer
+
+
+def _days_in_month(year: int, month: int) -> int:
+    """How many days that month has, leap years included."""
+    import calendar as _calendar
+
+    return _calendar.monthrange(year, month)[1]
+
+
+# Imported lazily at call time rather than at module import, because
+# pipeline.arrivals imports nothing from here and we want to keep it that way.
+def arrivals_normalized_to_calendar(doy: int, year: int) -> tuple[int, int]:
+    """Thin wrapper so this module does not import arrivals at module level."""
+    from pipeline.arrivals import normalized_to_calendar
+
+    return normalized_to_calendar(doy, year)
+
+
+def arrival_by_counting(
+    client: GbifClient, taxon_key: int, year: int
+) -> tuple[Optional[int], int]:
+    """One species-year's arrival day and sighting count, using count queries.
+
+    Returns ``(arrival_doy, n)``. ``arrival_doy`` is None when the spring had
+    no sightings at all; the minimum-sightings rule is applied by the caller,
+    not here, so that this function has exactly one job.
+    """
+    from pipeline.arrivals import percentile_day_from_cumulative
+
+    counter = SpringCounter(client, taxon_key, year)
+    if counter.total == 0:
+        return None, 0
+
+    doy = percentile_day_from_cumulative(
+        total=counter.total,
+        cumulative_at=counter.cumulative_at,
+        lo=1,
+        hi=181,
+    )
+    return doy, counter.total

@@ -187,6 +187,89 @@ def percentile_day(days: Sequence[int], fraction: float = ARRIVAL_PERCENTILE) ->
     return ordered[index]
 
 
+def percentile_rank(total: int, fraction: float = ARRIVAL_PERCENTILE) -> int:
+    """The 1-based position of the percentile within ``total`` sorted values.
+
+    Split out of :func:`percentile_day` so that the counting method below can
+    use exactly the same definition. If these two ever disagree, the website
+    is showing two different statistics under one name.
+    """
+    if not 0 < fraction <= 1:
+        raise ValueError(f"fraction must be in (0, 1], got {fraction}")
+    if total <= 0:
+        raise ValueError("cannot take a percentile of zero sightings")
+    return max(1, min(math.ceil(fraction * total), total))
+
+
+def percentile_day_from_cumulative(
+    total: int,
+    cumulative_at,
+    lo: int = 1,
+    hi: int = 181,
+    fraction: float = ARRIVAL_PERCENTILE,
+) -> int:
+    """The same percentile, found by binary search instead of by sorting.
+
+    Why this exists
+    ---------------
+    :func:`percentile_day` needs every sighting in memory. Downloading every
+    sighting turned out to be impossible in practice: GBIF's paging slows to a
+    crawl past an offset of roughly ten thousand, and several species-years
+    here run to thirty thousand records. See DECISIONS.md section 8.
+
+    But the answer never depended on the individual records. The 10th
+    percentile day is defined entirely by *how many* sightings fell on or
+    before each day, and GBIF will answer that with a count query in under a
+    second no matter how large the result set is.
+
+    So: ``cumulative_at(d)`` returns how many of this spring's sightings fell
+    on or before normalised day ``d``, and we binary search for the first day
+    where that reaches the percentile's rank. About eight probes covers the
+    whole spring, instead of a hundred pages of records.
+
+    This is **not an approximation**. It returns the identical day the sorting
+    method returns, and ``tests/test_arrivals.py`` asserts that on hand-made
+    data where both can be run.
+
+    Parameters
+    ----------
+    total:
+        How many sightings the spring had in all.
+    cumulative_at:
+        A callable taking a normalised day number and returning the count of
+        sightings on or before it. Passed in rather than built here so this
+        function stays pure and testable with no network.
+    lo, hi:
+        The day range to search. Defaults cover 1 January to 30 June.
+    """
+    target = percentile_rank(total, fraction)
+    while lo < hi:
+        mid = (lo + hi) // 2
+        if cumulative_at(mid) >= target:
+            hi = mid
+        else:
+            lo = mid + 1
+    return lo
+
+
+def normalized_to_calendar(doy: int, year: int) -> tuple[int, int]:
+    """Turn a normalised day number back into a (month, day) in a real year.
+
+    The counting method has to ask GBIF about real calendar dates, but it
+    searches in normalised day numbers, so something has to translate between
+    them. This is that something, and it is where the leap-year correction has
+    to be undone exactly as :func:`normalized_day_of_year` applied it.
+
+    In a leap year every normalised day from 60 onwards sits one calendar day
+    later than its number suggests, because 29 February was taken out. Day 60
+    maps to 1 March, and asking GBIF for "everything up to 1 March" correctly
+    sweeps up the 29 February records, which normalise to day 60 as well.
+    """
+    raw = doy + 1 if (calendar.isleap(year) and doy >= 60) else doy
+    when = date(year, 1, 1) + timedelta(days=raw - 1)
+    return when.month, when.day
+
+
 # ---------------------------------------------------------------------------
 # Records -> days
 # ---------------------------------------------------------------------------
@@ -244,17 +327,19 @@ class YearArrival:
     skipped_reason: Optional[str] = None
 
 
-def yearly_arrival(
+def yearly_arrival_from_summary(
     year: int,
-    days: Sequence[int],
+    arrival_doy: Optional[int],
+    n: int,
     min_sightings: int = MIN_SIGHTINGS_PER_YEAR,
 ) -> YearArrival:
-    """Compute one species-year's arrival date, or record why we skipped it.
+    """Apply the minimum-sightings rule to an already-computed arrival day.
 
-    Separated from the download so it can be tested against hand-made data
-    with a known answer, which is what ``tests/test_arrivals.py`` does.
+    Both ways of getting an arrival date end here, so the threshold and the
+    wording of the skip reason live in exactly one place. If the counting
+    method and the record method disagreed about whether a year counts, the
+    website would quietly depend on which one you happened to run.
     """
-    n = len(days)
     if n < min_sightings:
         return YearArrival(
             year=year,
@@ -263,8 +348,24 @@ def yearly_arrival(
             used=False,
             skipped_reason=f"only {n} sightings, need {min_sightings}",
         )
-    return YearArrival(
-        year=year, n=n, arrival_doy=percentile_day(days), used=True
+    return YearArrival(year=year, n=n, arrival_doy=arrival_doy, used=True)
+
+
+def yearly_arrival(
+    year: int,
+    days: Sequence[int],
+    min_sightings: int = MIN_SIGHTINGS_PER_YEAR,
+) -> YearArrival:
+    """Compute one species-year's arrival date from a list of day numbers.
+
+    Separated from the download so it can be tested against hand-made data
+    with a known answer, which is what ``tests/test_arrivals.py`` does.
+    """
+    n = len(days)
+    if n < min_sightings:
+        return yearly_arrival_from_summary(year, None, n, min_sightings)
+    return yearly_arrival_from_summary(
+        year, percentile_day(days), n, min_sightings
     )
 
 

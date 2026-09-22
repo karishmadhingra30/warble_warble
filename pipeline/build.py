@@ -70,6 +70,7 @@ def build_species(
     sp: species.Species,
     client: fetch.GbifClient,
     verbose: bool = True,
+    mode: str = "count",
 ) -> dict:
     """Download, measure and summarise one bird. Returns one JSON-ready dict.
 
@@ -78,9 +79,23 @@ def build_species(
     1. Count sightings in all twelve months, across both windows, and use
        those counts to decide whether wintering birds spoil this species'
        arrival date (see DECISIONS.md section 4).
-    2. For every year in both windows, download the spring sightings and take
-       the 10th percentile day.
+    2. For every year in both windows, find the 10th percentile day of the
+       spring's sightings.
     3. Take the median of each window's yearly numbers, and subtract.
+
+    ``mode`` picks how step 2 is done:
+
+    ``"count"`` (the default)
+        Binary search using count queries. About a dozen fast requests per
+        species-year, and it never pages, so GBIF's deep-offset slowdown
+        never bites. This is what produced the published numbers.
+    ``"records"``
+        Download every sighting and sort them. Correct, far slower, and
+        unusable on the larger species-years. Kept because it is the
+        reference the counting path was checked against, and because having
+        two independent routes to the same number is worth the extra code.
+
+    The two agree exactly. See DECISIONS.md section 8.
     """
     if verbose:
         print(f"\n=== {sp.common_name} (taxonKey {sp.taxon_key}) ===", flush=True)
@@ -96,12 +111,16 @@ def build_species(
     # -- step 2: one arrival date per spring ------------------------------
     yearly: list[arrivals.YearArrival] = []
     for year in window_years(EARLY_WINDOW) + window_years(LATE_WINDOW):
-        records = client.spring_records(sp.taxon_key, year)
-        days = arrivals.records_to_days(records)
-        # yearly_arrival applies the minimum-sightings rule itself and hands
-        # back a skipped result rather than raising, so a thin year needs no
-        # special case here.
-        yearly.append(arrivals.yearly_arrival(year, days))
+        if mode == "count":
+            doy, n = fetch.arrival_by_counting(client, sp.taxon_key, year)
+            yearly.append(arrivals.yearly_arrival_from_summary(year, doy, n))
+        else:
+            records = client.spring_records(sp.taxon_key, year)
+            days = arrivals.records_to_days(records)
+            # yearly_arrival applies the minimum-sightings rule itself and
+            # hands back a skipped result rather than raising, so a thin year
+            # needs no special case here.
+            yearly.append(arrivals.yearly_arrival(year, days))
         if verbose:
             last = yearly[-1]
             shown = arrivals.format_day_of_year(last.arrival_doy) or "no data"
@@ -154,13 +173,17 @@ def build_species(
 # ---------------------------------------------------------------------------
 
 
-def build_all(client: fetch.GbifClient, verbose: bool = True) -> dict:
+def build_all(
+    client: fetch.GbifClient, verbose: bool = True, mode: str = "count"
+) -> dict:
     """Run every species and assemble the complete JSON document."""
     birds = species.resolve_all(species.all_species(), client)
     if verbose:
         print(species.format_taxon_table(birds), flush=True)
 
-    results = [build_species(sp, client, verbose=verbose) for sp in birds]
+    results = [
+        build_species(sp, client, verbose=verbose, mode=mode) for sp in birds
+    ]
 
     # Sort by shift, most-earlier first, so the page can render the list in
     # order without doing the sorting itself. Species with no shift go last.
@@ -171,6 +194,7 @@ def build_all(client: fetch.GbifClient, verbose: bool = True) -> dict:
     return {
         "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "method": METHOD_DESCRIPTION,
+        "measured_by": mode,
         "windows": {"early": list(EARLY_WINDOW), "late": list(LATE_WINDOW)},
         "min_sightings_per_year": arrivals.MIN_SIGHTINGS_PER_YEAR,
         "min_years_per_window": arrivals.MIN_YEARS_PER_WINDOW,
@@ -300,6 +324,12 @@ def main(argv: list[str] | None = None) -> int:
         "--base-url", default=fetch.GBIF_BASE_URL,
         help=argparse.SUPPRESS,  # testing hook: point at a local stand-in server
     )
+    parser.add_argument(
+        "--mode", choices=("count", "records"), default="count",
+        help="how to find each arrival day: 'count' binary-searches with count "
+             "queries (fast, the default); 'records' downloads every sighting "
+             "(the slow reference implementation)",
+    )
     parser.add_argument("--quiet", action="store_true", help="less progress output")
     args = parser.parse_args(argv)
 
@@ -322,7 +352,7 @@ def main(argv: list[str] | None = None) -> int:
         file_evidence_in_decisions(report)
         return 0
 
-    document = build_all(client, verbose=verbose)
+    document = build_all(client, verbose=verbose, mode=args.mode)
     write_json(document, args.out)
     print(
         f"requests: {client.stats['network_calls']} network, "

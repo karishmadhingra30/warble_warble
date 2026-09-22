@@ -23,6 +23,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from pipeline.arrivals import (  # noqa: E402
     MIN_SIGHTINGS_PER_YEAR,
+    normalized_to_calendar,
+    percentile_day_from_cumulative,
+    percentile_rank,
     YearArrival,
     day_of_year_to_date,
     format_day_of_year,
@@ -270,3 +273,124 @@ def test_records_without_a_day_are_dropped():
 
 def test_no_records_gives_no_days():
     assert records_to_days([]) == []
+
+
+# ---------------------------------------------------------------------------
+# 6. The counting method must give the identical answer to the sorting method
+# ---------------------------------------------------------------------------
+#
+# The published numbers come from the counting method, because downloading
+# every record turned out to be impossible against the live API. These tests
+# are what let us treat it as the same statistic rather than a cheaper
+# approximation of it. If one of them fails, the website is showing something
+# other than what it claims to.
+
+
+def cumulative_from(days):
+    """Build a cumulative-count function from a list of days, for testing.
+
+    Stands in for the one that asks GBIF, so the search logic can be tested
+    without a network.
+    """
+    return lambda d: sum(1 for day in days if day <= d)
+
+
+def test_counting_matches_sorting_on_a_known_case():
+    """Days 1..100: both methods must say day 10."""
+    days = list(range(1, 101))
+    assert percentile_day_from_cumulative(len(days), cumulative_from(days)) == 10
+    assert percentile_day(days) == 10
+
+
+@pytest.mark.parametrize(
+    "days",
+    [
+        [80, 84, 85, 90, 91, 95, 96, 100, 104, 110],
+        list(range(60, 75)),
+        [100] * 50,                       # every sighting on one day
+        [40] + [120] * 99,                # one very early outlier
+        list(range(1, 182)) * 3,          # the whole window, three deep
+        [5, 5, 5, 5, 200, 200, 200, 200],
+    ],
+)
+def test_counting_matches_sorting_on_many_shapes(days):
+    """Whatever the distribution, the two routes land on the same day."""
+    assert percentile_day_from_cumulative(
+        len(days), cumulative_from(days)
+    ) == percentile_day(days)
+
+
+def test_counting_matches_sorting_on_random_distributions():
+    """A few hundred random springs, checked one against the other.
+
+    Random rather than hand-picked, because the failure mode being guarded
+    against is an off-by-one that only shows up at particular sample sizes.
+    """
+    import random
+
+    rng = random.Random(20260922)
+    for _ in range(300):
+        n = rng.randint(1, 400)
+        days = [rng.randint(1, 181) for _ in range(n)]
+        assert percentile_day_from_cumulative(
+            n, cumulative_from(days)
+        ) == percentile_day(days), days
+
+
+def test_percentile_rank_is_one_based_and_rounds_up():
+    assert percentile_rank(100, 0.10) == 10
+    assert percentile_rank(10, 0.10) == 1
+    assert percentile_rank(15, 0.10) == 2      # 1.5 rounds up
+    assert percentile_rank(1, 0.10) == 1       # never below the first record
+
+
+def test_percentile_rank_rejects_an_empty_spring():
+    with pytest.raises(ValueError):
+        percentile_rank(0)
+
+
+# ---------------------------------------------------------------------------
+# 7. Normalised day numbers translate back to real calendar dates
+# ---------------------------------------------------------------------------
+#
+# The counting method searches in normalised day numbers but has to ask GBIF
+# about real dates, so this translation sits directly under the result.
+
+
+def test_normalised_day_maps_back_to_the_same_date_it_came_from():
+    """Round-trip every spring day of a leap and a non-leap year."""
+    for year in (2023, 2024):
+        for doy in range(1, 182):
+            month, day = normalized_to_calendar(doy, year)
+            assert normalized_day_of_year(date(year, month, day)) == doy
+
+
+def test_leap_year_dates_shift_by_one_after_february():
+    """Day 60 is 1 March in both kinds of year, which is the whole point.
+
+    Asking GBIF for "everything up to 1 March 2024" also sweeps in the
+    29 February records, and those normalise to day 60 too, so the cumulative
+    count stays correct.
+    """
+    assert normalized_to_calendar(59, 2024) == (2, 28)
+    assert normalized_to_calendar(60, 2024) == (3, 1)
+    assert normalized_to_calendar(60, 2023) == (3, 1)
+    assert normalized_to_calendar(181, 2024) == (6, 30)
+    assert normalized_to_calendar(181, 2023) == (6, 30)
+
+
+# ---------------------------------------------------------------------------
+# 8. The minimum-sightings rule is applied identically by both routes
+# ---------------------------------------------------------------------------
+
+
+def test_both_routes_skip_a_thin_year_the_same_way():
+    from pipeline.arrivals import yearly_arrival_from_summary
+
+    thin = list(range(1, 50))          # 49 sightings
+    by_records = yearly_arrival(2009, thin)
+    by_counting = yearly_arrival_from_summary(2009, 12, len(thin))
+
+    assert by_records.used is by_counting.used is False
+    assert by_records.skipped_reason == by_counting.skipped_reason
+    assert by_records.arrival_doy is by_counting.arrival_doy is None

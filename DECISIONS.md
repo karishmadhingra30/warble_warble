@@ -52,6 +52,10 @@ everything would mean a multi-gigabyte cache on a laptop for data we never
 read. The fields kept are listed in `KEPT_FIELDS` in `pipeline/fetch.py`:
 record key, event date, year, month, day, latitude, longitude, county.
 
+**Since decision 8**, the default run downloads almost no records at all, so
+`data/raw/` is now mostly cached count responses and is a few megabytes. This
+trimming still applies to `--mode records`.
+
 The honest caveat: this makes `data/raw/` a trimmed cache, not a true raw
 archive. If you want the untouched responses, delete `_slim_page` from the
 `postprocess=` argument in `GbifClient._occurrence_page` and re-run.
@@ -165,3 +169,74 @@ extending the leading edge.
 the season, or bird in different places, a percentile moves too. That residual
 is what the control species measures, and it is why the controls get a place
 on the page rather than a footnote.
+
+---
+
+## 8. Arrival dates are found by counting, not by downloading every sighting
+
+**Decision.** The pipeline computes each spring's 10th percentile day with a
+binary search over count queries. Downloading every record still exists as
+`--mode records`, but it is no longer the default and did not produce the
+published numbers.
+
+**Why.** The obvious method, and the one this project started with, is to
+download every sighting and sort them. It works, and it is what the tests
+check against. It is also unusable against the real GBIF API.
+
+GBIF's occurrence search gets dramatically slower as the paging offset grows.
+Measured on 2026-09-22 with this project's exact filters, one 300-record page
+of Wilson's Warbler:
+
+| offset | time for one page |
+|---|---:|
+| 0 | 1.8 s |
+| 3,000 | 1.5 s |
+| 11,400 | over 100 s (gave up) |
+
+The documented ceiling is an offset of 100,000, and that limit is real, but it
+is not the one that bites. The practical ceiling is somewhere around 10,000.
+Several species-years in this study run past 30,000 sightings, and the two
+control birds are over 100,000 each across a window. The first attempt at a
+full run was managing **one page every six minutes** and would have taken
+weeks.
+
+Splitting by day instead of by month would have kept every query shallow, but
+at the cost of roughly 14,000 requests and about five hours, to download 1.8
+million records we were only ever going to reduce to one number each.
+
+**The insight.** A percentile does not need the records. It needs to know how
+many sightings fell on or before each day. A `limit=0` count query answers
+exactly that, and it answers in under a second no matter how large the result
+set is, because GBIF never has to assemble any records.
+
+So the pipeline fetches the six monthly totals for a spring, works out which
+month contains the 10th percentile, and binary searches within it. About
+twelve fast requests per species-year, against a hundred or more slow pages.
+The whole study is roughly 1,300 requests instead of 7,000, and the cache is
+megabytes instead of gigabytes.
+
+**This is not an approximation, and we did not take that on trust.** The
+counting method returns the same day the sorting method returns, by
+construction, and it was checked against it:
+
+- On the six Wilson's Warbler springs that had been fully downloaded before
+  the paging problem was found, both methods return the identical day **and**
+  the identical sighting count, including a spring of 24,843 records.
+- `tests/test_arrivals.py` runs both methods over hand-made distributions and
+  over 300 randomly generated springs and asserts they agree every time. The
+  failure this guards against is an off-by-one that only shows up at certain
+  sample sizes.
+- Both routes end at the same `yearly_arrival_from_summary`, so the
+  minimum-sightings rule cannot be applied differently by one than the other.
+
+**A bonus check that fell out of it.** The counting totals match the record
+totals exactly, which means no eBird record in this dataset is missing a day.
+Had some been dated only to a month, the two totals would have differed and
+`records_to_days` would have been quietly dropping them.
+
+**What we gave up.** `data/raw/` no longer accumulates the sightings
+themselves, so there is no local archive to re-analyse a different way without
+going back to GBIF. If you want one, run `--mode records`, budget several
+hours, and expect it to stall on the larger species. That trade is worth it:
+the archive was never the point, and an hour-long run that finishes beats a
+week-long run that does not.
