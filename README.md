@@ -13,19 +13,19 @@ warblers reach California earlier in spring than they used to?
 spring. If springs are warming, they might be showing up sooner. Do the
 records say they are?
 
-**The answer.** _Pending the first data run._ The pipeline has not been run
-against the live GBIF API yet, so there is no result to state here, and
-writing a plausible-sounding one would defeat the point of the project. Run
-`python pipeline/build.py`, read the headline the site generates from the real
-numbers, and put it here in two sentences. If the answer turns out to be
-"not much changed", write that: a clear null result is still a finding, and
-the page is built to say so.
+**The answer.** Barely. Five of the six usable warblers do arrive earlier, by
+two to five days, but the two resident birds that cannot possibly have
+changed their arrival date shifted by a median of one day and by as much as
+three, so almost all of the warbler movement is the measurement drifting
+rather than the birds moving. **One day earlier survives the correction,
+against a three-day noise floor: this method cannot show that California's
+warblers have changed when they arrive.**
 
-## Screenshot
+That is a real answer, not a failed one. The project was built to tell a few
+days of bird behaviour apart from a decade of growth in birdwatching, and
+what it found is that over this period, for these species, it cannot.
 
-_Added after the first run._ Once `site/data/arrivals.json` has real numbers
-in it, serve the site locally (see below), screenshot the top of the page, and
-drop it in as `docs/screenshot.png`.
+![The site: headline and the main chart](docs/screenshot.png)
 
 ---
 
@@ -70,11 +70,60 @@ measurement drifting, most likely because the people doing the birdwatching
 changed. Whatever the warblers show, the controls' shift has to come off the
 top before it means anything.
 
-**What the control showed:** _pending the first data run._ The site computes
-this automatically and gives it its own panel: median warbler shift, median
-resident shift, and the difference. If the residents move as far as the
-warblers do, the honest conclusion is that this method cannot detect a change
-in these birds, and the page says that in those words.
+**What the control showed:** they moved, and they cannot have.
+
+| | median shift |
+|---|---|
+| the six usable warblers | 2 days earlier |
+| **the two resident controls** | **1 day earlier** |
+| what survives the correction | 1 day earlier |
+
+Oak Titmouse came out 3 days earlier and California Towhee did not move. An
+Oak Titmouse in 2024 is sitting in the same oak its parents sat in; nothing
+about its year changed. Those 3 days are pure measurement drift, and they are
+the same size as the entire warbler signal.
+
+So the page takes the largest apparent shift any resident showed and treats
+it as the noise floor. One day of corrected warbler shift is inside it. The
+control is the reason this project reports "not much changed" instead of
+"warblers are arriving earlier", and the second headline would have been the
+easy one to write.
+
+## Every species
+
+| species | kind | 2008-2012 | 2020-2024 | shift |
+|---|---|---|---|---|
+| Yellow Warbler | warbler | April 21 | April 16 | 5 days earlier |
+| MacGillivray's Warbler | warbler | April 25 | April 21 | 4 days earlier |
+| Orange-crowned Warbler | excluded | January 28 | January 24 | 4 days earlier |
+| Hermit Warbler | warbler | April 22 | April 19 | 3 days earlier |
+| Oak Titmouse | resident control | January 20 | January 17 | 3 days earlier |
+| Wilson's Warbler | warbler | April 9 | April 7 | 2 days earlier |
+| Nashville Warbler | warbler | April 9 | April 7 | 2 days earlier |
+| Townsend's Warbler | excluded | January 8 | January 8 | no change |
+| California Towhee | resident control | January 19 | January 19 | no change |
+| Black-throated Gray Warbler | flagged | March 5 | March 26 | 21 days later |
+
+**Two species were excluded by the data, not by me.** Townsend's Warbler has
+**more** records in January (50,063) than in April (34,434), and
+Orange-crowned Warbler is abundant here all winter. Neither has a spring
+arrival left to measure. The pipeline counts all twelve months for every
+species and applies a written threshold, so these two dropped out on their
+own evidence. The counts are in [DECISIONS.md](DECISIONS.md).
+
+**One species is flagged.** Black-throated Gray Warbler came back 21 days
+*later*, alone against the field. Its five early-window springs were
+18 February, 21 February, 5 March, 25 March and 29 March: a 40-day spread,
+wider than the shift it supposedly shows. Its small winter population sits
+exactly where the 10th percentile falls, so the number tips by weeks on a few
+dozen records. It stays on the chart, greyed, with the reason attached. That
+check was added after seeing the result, which is said plainly in
+[DECISIONS.md](DECISIONS.md) section 9.
+
+**The dates themselves look right**, which is a useful sanity check on the
+whole pipeline: Wilson's Warbler in early April, Yellow and Hermit Warbler in
+the third week, MacGillivray's last. That is the real order these birds
+arrive in California.
 
 ---
 

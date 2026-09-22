@@ -1,7 +1,7 @@
 {
-  "generated_at": null,
-  "note": "No pipeline run yet. This file is the empty state: it has the right shape so the page loads, but it contains no results. Run `python pipeline/build.py` and it is overwritten with real numbers. Nothing here is made up, because nothing here is a measurement.",
+  "generated_at": "2026-09-22T02:23:58+00:00",
   "method": "10th percentile day of year, Jan 1 to Jun 30, eBird records via GBIF",
+  "measured_by": "count",
   "windows": {
     "early": [
       2008,
@@ -12,6 +12,8 @@
       2024
     ]
   },
+  "min_sightings_per_year": 100,
+  "min_years_per_window": 3,
   "arrival_percentile": 0.1,
   "source": {
     "name": "GBIF occurrence search, EOD - eBird Observation Dataset",
@@ -19,5 +21,936 @@
     "dataset_url": "https://www.gbif.org/dataset/4fa7b334-ce0d-4e88-aaae-2e0c138d049e",
     "api": "https://api.gbif.org/v1"
   },
-  "species": []
+  "species": [
+    {
+      "common_name": "Yellow Warbler",
+      "scientific_name": "Setophaga petechia",
+      "taxon_key": 7341834,
+      "is_control": false,
+      "reliability": "good",
+      "reliability_note": null,
+      "early_arrival_doy": 111,
+      "late_arrival_doy": 106,
+      "shift_days": -5,
+      "years_used": {
+        "early": 5,
+        "late": 5
+      },
+      "winter_share": 0.042,
+      "window_spread_days": 9,
+      "monthly_counts": [
+        2033,
+        1341,
+        1803,
+        41697,
+        93472,
+        44848,
+        24256,
+        35404,
+        101683,
+        28540,
+        2427,
+        2254
+      ],
+      "yearly": [
+        {
+          "year": 2008,
+          "arrival_doy": 112,
+          "n": 1559,
+          "used": true
+        },
+        {
+          "year": 2009,
+          "arrival_doy": 104,
+          "n": 2013,
+          "used": true
+        },
+        {
+          "year": 2010,
+          "arrival_doy": 111,
+          "n": 3382,
+          "used": true
+        },
+        {
+          "year": 2011,
+          "arrival_doy": 113,
+          "n": 3545,
+          "used": true
+        },
+        {
+          "year": 2012,
+          "arrival_doy": 110,
+          "n": 4622,
+          "used": true
+        },
+        {
+          "year": 2020,
+          "arrival_doy": 109,
+          "n": 14107,
+          "used": true
+        },
+        {
+          "year": 2021,
+          "arrival_doy": 106,
+          "n": 18324,
+          "used": true
+        },
+        {
+          "year": 2022,
+          "arrival_doy": 105,
+          "n": 20666,
+          "used": true
+        },
+        {
+          "year": 2023,
+          "arrival_doy": 108,
+          "n": 24424,
+          "used": true
+        },
+        {
+          "year": 2024,
+          "arrival_doy": 106,
+          "n": 26168,
+          "used": true
+        }
+      ]
+    },
+    {
+      "common_name": "MacGillivray's Warbler",
+      "scientific_name": "Geothlypis tolmiei",
+      "taxon_key": 5789146,
+      "is_control": false,
+      "reliability": "good",
+      "reliability_note": null,
+      "early_arrival_doy": 115,
+      "late_arrival_doy": 111,
+      "shift_days": -4,
+      "years_used": {
+        "early": 5,
+        "late": 5
+      },
+      "winter_share": 0.006,
+      "window_spread_days": 7,
+      "monthly_counts": [
+        55,
+        9,
+        124,
+        7759,
+        17090,
+        15143,
+        7416,
+        8117,
+        9698,
+        1535,
+        64,
+        86
+      ],
+      "yearly": [
+        {
+          "year": 2008,
+          "arrival_doy": 116,
+          "n": 558,
+          "used": true
+        },
+        {
+          "year": 2009,
+          "arrival_doy": 113,
+          "n": 677,
+          "used": true
+        },
+        {
+          "year": 2010,
+          "arrival_doy": 113,
+          "n": 888,
+          "used": true
+        },
+        {
+          "year": 2011,
+          "arrival_doy": 120,
+          "n": 818,
+          "used": true
+        },
+        {
+          "year": 2012,
+          "arrival_doy": 115,
+          "n": 1565,
+          "used": true
+        },
+        {
+          "year": 2020,
+          "arrival_doy": 108,
+          "n": 3326,
+          "used": true
+        },
+        {
+          "year": 2021,
+          "arrival_doy": 113,
+          "n": 3803,
+          "used": true
+        },
+        {
+          "year": 2022,
+          "arrival_doy": 108,
+          "n": 3969,
+          "used": true
+        },
+        {
+          "year": 2023,
+          "arrival_doy": 111,
+          "n": 3992,
+          "used": true
+        },
+        {
+          "year": 2024,
+          "arrival_doy": 114,
+          "n": 4509,
+          "used": true
+        }
+      ]
+    },
+    {
+      "common_name": "Orange-crowned Warbler",
+      "scientific_name": "Leiothlypis celata",
+      "taxon_key": 8169649,
+      "is_control": false,
+      "reliability": "excluded",
+      "reliability_note": "Winter-to-spring ratio 0.70 is above 0.6. Wintering birds outnumber spring arrivals badly enough that there is no arrival signal left to measure.",
+      "early_arrival_doy": 28,
+      "late_arrival_doy": 24,
+      "shift_days": -4,
+      "years_used": {
+        "early": 5,
+        "late": 5
+      },
+      "winter_share": 0.7,
+      "window_spread_days": 14,
+      "monthly_counts": [
+        53090,
+        44843,
+        78113,
+        132390,
+        91410,
+        47841,
+        22072,
+        39065,
+        99804,
+        80252,
+        48529,
+        58820
+      ],
+      "yearly": [
+        {
+          "year": 2008,
+          "arrival_doy": 36,
+          "n": 3133,
+          "used": true
+        },
+        {
+          "year": 2009,
+          "arrival_doy": 27,
+          "n": 4587,
+          "used": true
+        },
+        {
+          "year": 2010,
+          "arrival_doy": 38,
+          "n": 6678,
+          "used": true
+        },
+        {
+          "year": 2011,
+          "arrival_doy": 24,
+          "n": 7559,
+          "used": true
+        },
+        {
+          "year": 2012,
+          "arrival_doy": 28,
+          "n": 10633,
+          "used": true
+        },
+        {
+          "year": 2020,
+          "arrival_doy": 30,
+          "n": 41893,
+          "used": true
+        },
+        {
+          "year": 2021,
+          "arrival_doy": 24,
+          "n": 43588,
+          "used": true
+        },
+        {
+          "year": 2022,
+          "arrival_doy": 22,
+          "n": 50122,
+          "used": true
+        },
+        {
+          "year": 2023,
+          "arrival_doy": 27,
+          "n": 56493,
+          "used": true
+        },
+        {
+          "year": 2024,
+          "arrival_doy": 22,
+          "n": 67249,
+          "used": true
+        }
+      ]
+    },
+    {
+      "common_name": "Hermit Warbler",
+      "scientific_name": "Setophaga occidentalis",
+      "taxon_key": 6092644,
+      "is_control": false,
+      "reliability": "good",
+      "reliability_note": "Winter-to-spring ratio 0.06: a scattering of winter records, too few to move a percentile built on thousands of spring sightings.",
+      "early_arrival_doy": 112,
+      "late_arrival_doy": 109,
+      "shift_days": -3,
+      "years_used": {
+        "early": 5,
+        "late": 5
+      },
+      "winter_share": 0.059,
+      "window_spread_days": 9,
+      "monthly_counts": [
+        647,
+        360,
+        469,
+        11914,
+        21724,
+        12449,
+        4565,
+        6678,
+        6946,
+        2607,
+        653,
+        981
+      ],
+      "yearly": [
+        {
+          "year": 2008,
+          "arrival_doy": 110,
+          "n": 418,
+          "used": true
+        },
+        {
+          "year": 2009,
+          "arrival_doy": 116,
+          "n": 533,
+          "used": true
+        },
+        {
+          "year": 2010,
+          "arrival_doy": 107,
+          "n": 798,
+          "used": true
+        },
+        {
+          "year": 2011,
+          "arrival_doy": 113,
+          "n": 1109,
+          "used": true
+        },
+        {
+          "year": 2012,
+          "arrival_doy": 112,
+          "n": 1500,
+          "used": true
+        },
+        {
+          "year": 2020,
+          "arrival_doy": 109,
+          "n": 3345,
+          "used": true
+        },
+        {
+          "year": 2021,
+          "arrival_doy": 108,
+          "n": 5671,
+          "used": true
+        },
+        {
+          "year": 2022,
+          "arrival_doy": 107,
+          "n": 5474,
+          "used": true
+        },
+        {
+          "year": 2023,
+          "arrival_doy": 109,
+          "n": 5363,
+          "used": true
+        },
+        {
+          "year": 2024,
+          "arrival_doy": 111,
+          "n": 5572,
+          "used": true
+        }
+      ]
+    },
+    {
+      "common_name": "Oak Titmouse",
+      "scientific_name": "Baeolophus inornatus",
+      "taxon_key": 2487905,
+      "is_control": true,
+      "reliability": "control",
+      "reliability_note": "Resident species, present all year. Included on purpose as a check on the method, not as a migration result.",
+      "early_arrival_doy": 20,
+      "late_arrival_doy": 17,
+      "shift_days": -3,
+      "years_used": {
+        "early": 5,
+        "late": 5
+      },
+      "winter_share": 1.354,
+      "window_spread_days": 8,
+      "monthly_counts": [
+        95720,
+        88159,
+        97560,
+        108795,
+        95260,
+        70295,
+        59882,
+        60409,
+        78854,
+        77892,
+        72044,
+        92397
+      ],
+      "yearly": [
+        {
+          "year": 2008,
+          "arrival_doy": 25,
+          "n": 3089,
+          "used": true
+        },
+        {
+          "year": 2009,
+          "arrival_doy": 20,
+          "n": 4053,
+          "used": true
+        },
+        {
+          "year": 2010,
+          "arrival_doy": 22,
+          "n": 7759,
+          "used": true
+        },
+        {
+          "year": 2011,
+          "arrival_doy": 17,
+          "n": 9591,
+          "used": true
+        },
+        {
+          "year": 2012,
+          "arrival_doy": 18,
+          "n": 13218,
+          "used": true
+        },
+        {
+          "year": 2020,
+          "arrival_doy": 19,
+          "n": 55206,
+          "used": true
+        },
+        {
+          "year": 2021,
+          "arrival_doy": 17,
+          "n": 64651,
+          "used": true
+        },
+        {
+          "year": 2022,
+          "arrival_doy": 15,
+          "n": 68625,
+          "used": true
+        },
+        {
+          "year": 2023,
+          "arrival_doy": 19,
+          "n": 68668,
+          "used": true
+        },
+        {
+          "year": 2024,
+          "arrival_doy": 17,
+          "n": 71873,
+          "used": true
+        }
+      ]
+    },
+    {
+      "common_name": "Wilson's Warbler",
+      "scientific_name": "Cardellina pusilla",
+      "taxon_key": 7341606,
+      "is_control": false,
+      "reliability": "good",
+      "reliability_note": null,
+      "early_arrival_doy": 99,
+      "late_arrival_doy": 97,
+      "shift_days": -2,
+      "years_used": {
+        "early": 5,
+        "late": 5
+      },
+      "winter_share": 0.032,
+      "window_spread_days": 7,
+      "monthly_counts": [
+        2537,
+        1778,
+        13658,
+        95719,
+        116947,
+        42840,
+        22463,
+        41029,
+        73796,
+        15044,
+        2511,
+        2498
+      ],
+      "yearly": [
+        {
+          "year": 2008,
+          "arrival_doy": 99,
+          "n": 2685,
+          "used": true
+        },
+        {
+          "year": 2009,
+          "arrival_doy": 95,
+          "n": 3371,
+          "used": true
+        },
+        {
+          "year": 2010,
+          "arrival_doy": 100,
+          "n": 5460,
+          "used": true
+        },
+        {
+          "year": 2011,
+          "arrival_doy": 102,
+          "n": 5849,
+          "used": true
+        },
+        {
+          "year": 2012,
+          "arrival_doy": 97,
+          "n": 7645,
+          "used": true
+        },
+        {
+          "year": 2020,
+          "arrival_doy": 98,
+          "n": 24843,
+          "used": true
+        },
+        {
+          "year": 2021,
+          "arrival_doy": 99,
+          "n": 27259,
+          "used": true
+        },
+        {
+          "year": 2022,
+          "arrival_doy": 93,
+          "n": 28843,
+          "used": true
+        },
+        {
+          "year": 2023,
+          "arrival_doy": 97,
+          "n": 31058,
+          "used": true
+        },
+        {
+          "year": 2024,
+          "arrival_doy": 96,
+          "n": 31038,
+          "used": true
+        }
+      ]
+    },
+    {
+      "common_name": "Nashville Warbler",
+      "scientific_name": "Leiothlypis ruficapilla",
+      "taxon_key": 7531611,
+      "is_control": false,
+      "reliability": "good",
+      "reliability_note": "Winter-to-spring ratio 0.10: a scattering of winter records, too few to move a percentile built on thousands of spring sightings.",
+      "early_arrival_doy": 99,
+      "late_arrival_doy": 97,
+      "shift_days": -2,
+      "years_used": {
+        "early": 5,
+        "late": 5
+      },
+      "winter_share": 0.096,
+      "window_spread_days": 7,
+      "monthly_counts": [
+        1596,
+        731,
+        942,
+        26992,
+        12576,
+        10138,
+        3980,
+        7455,
+        10266,
+        4844,
+        1338,
+        1488
+      ],
+      "yearly": [
+        {
+          "year": 2008,
+          "arrival_doy": 98,
+          "n": 458,
+          "used": true
+        },
+        {
+          "year": 2009,
+          "arrival_doy": 102,
+          "n": 714,
+          "used": true
+        },
+        {
+          "year": 2010,
+          "arrival_doy": 100,
+          "n": 931,
+          "used": true
+        },
+        {
+          "year": 2011,
+          "arrival_doy": 99,
+          "n": 1222,
+          "used": true
+        },
+        {
+          "year": 2012,
+          "arrival_doy": 97,
+          "n": 1951,
+          "used": true
+        },
+        {
+          "year": 2020,
+          "arrival_doy": 100,
+          "n": 5193,
+          "used": true
+        },
+        {
+          "year": 2021,
+          "arrival_doy": 99,
+          "n": 5351,
+          "used": true
+        },
+        {
+          "year": 2022,
+          "arrival_doy": 93,
+          "n": 5611,
+          "used": true
+        },
+        {
+          "year": 2023,
+          "arrival_doy": 96,
+          "n": 6028,
+          "used": true
+        },
+        {
+          "year": 2024,
+          "arrival_doy": 97,
+          "n": 6129,
+          "used": true
+        }
+      ]
+    },
+    {
+      "common_name": "Townsend's Warbler",
+      "scientific_name": "Setophaga townsendi",
+      "taxon_key": 6092651,
+      "is_control": false,
+      "reliability": "excluded",
+      "reliability_note": "Winter-to-spring ratio 2.28 is above 0.6. Wintering birds outnumber spring arrivals badly enough that there is no arrival signal left to measure.",
+      "early_arrival_doy": 8,
+      "late_arrival_doy": 8,
+      "shift_days": 0,
+      "years_used": {
+        "early": 5,
+        "late": 5
+      },
+      "winter_share": 2.285,
+      "window_spread_days": 9,
+      "monthly_counts": [
+        50063,
+        32181,
+        32657,
+        34434,
+        28641,
+        569,
+        59,
+        5863,
+        60958,
+        75361,
+        53190,
+        61860
+      ],
+      "yearly": [
+        {
+          "year": 2008,
+          "arrival_doy": 14,
+          "n": 1407,
+          "used": true
+        },
+        {
+          "year": 2009,
+          "arrival_doy": 5,
+          "n": 1682,
+          "used": true
+        },
+        {
+          "year": 2010,
+          "arrival_doy": 9,
+          "n": 2719,
+          "used": true
+        },
+        {
+          "year": 2011,
+          "arrival_doy": 8,
+          "n": 3812,
+          "used": true
+        },
+        {
+          "year": 2012,
+          "arrival_doy": 8,
+          "n": 5113,
+          "used": true
+        },
+        {
+          "year": 2020,
+          "arrival_doy": 7,
+          "n": 14890,
+          "used": true
+        },
+        {
+          "year": 2021,
+          "arrival_doy": 9,
+          "n": 18513,
+          "used": true
+        },
+        {
+          "year": 2022,
+          "arrival_doy": 8,
+          "n": 19147,
+          "used": true
+        },
+        {
+          "year": 2023,
+          "arrival_doy": 8,
+          "n": 23350,
+          "used": true
+        },
+        {
+          "year": 2024,
+          "arrival_doy": 9,
+          "n": 24922,
+          "used": true
+        }
+      ]
+    },
+    {
+      "common_name": "California Towhee",
+      "scientific_name": "Melozone crissalis",
+      "taxon_key": 7341600,
+      "is_control": true,
+      "reliability": "control",
+      "reliability_note": "Resident species, present all year. Included on purpose as a check on the method, not as a migration result.",
+      "early_arrival_doy": 19,
+      "late_arrival_doy": 19,
+      "shift_days": 0,
+      "years_used": {
+        "early": 5,
+        "late": 5
+      },
+      "winter_share": 1.186,
+      "window_spread_days": 6,
+      "monthly_counts": [
+        161617,
+        143730,
+        157325,
+        198985,
+        192110,
+        133112,
+        118094,
+        117052,
+        154411,
+        148772,
+        123297,
+        158465
+      ],
+      "yearly": [
+        {
+          "year": 2008,
+          "arrival_doy": 22,
+          "n": 6041,
+          "used": true
+        },
+        {
+          "year": 2009,
+          "arrival_doy": 19,
+          "n": 7721,
+          "used": true
+        },
+        {
+          "year": 2010,
+          "arrival_doy": 20,
+          "n": 13453,
+          "used": true
+        },
+        {
+          "year": 2011,
+          "arrival_doy": 16,
+          "n": 16204,
+          "used": true
+        },
+        {
+          "year": 2012,
+          "arrival_doy": 16,
+          "n": 21961,
+          "used": true
+        },
+        {
+          "year": 2020,
+          "arrival_doy": 20,
+          "n": 97221,
+          "used": true
+        },
+        {
+          "year": 2021,
+          "arrival_doy": 17,
+          "n": 113085,
+          "used": true
+        },
+        {
+          "year": 2022,
+          "arrival_doy": 16,
+          "n": 117173,
+          "used": true
+        },
+        {
+          "year": 2023,
+          "arrival_doy": 20,
+          "n": 125479,
+          "used": true
+        },
+        {
+          "year": 2024,
+          "arrival_doy": 19,
+          "n": 129494,
+          "used": true
+        }
+      ]
+    },
+    {
+      "common_name": "Black-throated Gray Warbler",
+      "scientific_name": "Setophaga nigrescens",
+      "taxon_key": 7341770,
+      "is_control": false,
+      "reliability": "flagged",
+      "reliability_note": "This species' own springs disagree by up to 39 days within a single window, which is more than the +21 day gap between the windows. The shift is smaller than the year-to-year noise behind it, so it should not be read as a change in the birds.",
+      "early_arrival_doy": 64,
+      "late_arrival_doy": 85,
+      "shift_days": 21,
+      "years_used": {
+        "early": 5,
+        "late": 5
+      },
+      "winter_share": 0.168,
+      "window_spread_days": 39,
+      "monthly_counts": [
+        3410,
+        2281,
+        3846,
+        37889,
+        18060,
+        8789,
+        3947,
+        11480,
+        32995,
+        25449,
+        4383,
+        3731
+      ],
+      "yearly": [
+        {
+          "year": 2008,
+          "arrival_doy": 84,
+          "n": 725,
+          "used": true
+        },
+        {
+          "year": 2009,
+          "arrival_doy": 52,
+          "n": 981,
+          "used": true
+        },
+        {
+          "year": 2010,
+          "arrival_doy": 88,
+          "n": 1385,
+          "used": true
+        },
+        {
+          "year": 2011,
+          "arrival_doy": 64,
+          "n": 1555,
+          "used": true
+        },
+        {
+          "year": 2012,
+          "arrival_doy": 49,
+          "n": 2092,
+          "used": true
+        },
+        {
+          "year": 2020,
+          "arrival_doy": 71,
+          "n": 7358,
+          "used": true
+        },
+        {
+          "year": 2021,
+          "arrival_doy": 88,
+          "n": 7370,
+          "used": true
+        },
+        {
+          "year": 2022,
+          "arrival_doy": 85,
+          "n": 7821,
+          "used": true
+        },
+        {
+          "year": 2023,
+          "arrival_doy": 91,
+          "n": 8907,
+          "used": true
+        },
+        {
+          "year": 2024,
+          "arrival_doy": 62,
+          "n": 8321,
+          "used": true
+        }
+      ]
+    }
+  ]
 }

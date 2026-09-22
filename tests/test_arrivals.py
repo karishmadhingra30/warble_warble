@@ -394,3 +394,81 @@ def test_both_routes_skip_a_thin_year_the_same_way():
     assert by_records.used is by_counting.used is False
     assert by_records.skipped_reason == by_counting.skipped_reason
     assert by_records.arrival_doy is by_counting.arrival_doy is None
+
+
+# ---------------------------------------------------------------------------
+# 9. A species whose own springs scatter is flagged as unstable
+# ---------------------------------------------------------------------------
+#
+# You cannot measure a shift smaller than the noise in your own measurement.
+# These tests pin the check that says so.
+
+
+def steady(years, doys):
+    return [YearArrival(y, 500, d, True) for y, d in zip(years, doys)]
+
+
+def test_spread_is_the_gap_between_the_earliest_and_latest_spring():
+    from pipeline.arrivals import window_spread
+
+    assert window_spread(steady(range(2008, 2013), [95, 97, 99, 100, 102])) == 7
+    assert window_spread(steady(range(2008, 2013), [49, 52, 64, 84, 88])) == 39
+
+
+def test_spread_ignores_skipped_years():
+    from pipeline.arrivals import window_spread
+
+    years = [
+        YearArrival(2008, 500, 100, True),
+        YearArrival(2009, 10, None, False, "too few"),
+        YearArrival(2010, 500, 104, True),
+    ]
+    assert window_spread(years) == 4
+
+
+def test_spread_needs_two_years_to_mean_anything():
+    from pipeline.arrivals import window_spread
+
+    assert window_spread(steady([2008], [100])) is None
+    assert window_spread([]) is None
+
+
+def test_a_tight_species_is_stable():
+    from pipeline.arrivals import is_stable
+
+    early = steady(range(2008, 2013), [95, 97, 99, 100, 102])
+    late = steady(range(2020, 2025), [93, 96, 97, 98, 99])
+    ok, spread = is_stable(early, late)
+    assert ok is True
+    assert spread == 7
+
+
+def test_a_scattered_species_is_not_stable():
+    """The real Black-throated Gray Warbler numbers, which prompted the check."""
+    from pipeline.arrivals import is_stable
+
+    early = steady(range(2008, 2013), [49, 52, 64, 84, 88])
+    late = steady(range(2020, 2025), [62, 71, 85, 88, 91])
+    ok, spread = is_stable(early, late)
+    assert ok is False
+    assert spread == 39
+
+
+def test_one_bad_window_is_enough_to_fail():
+    """A steady early window does not rescue a scattered late one."""
+    from pipeline.arrivals import is_stable
+
+    early = steady(range(2008, 2013), [95, 97, 99, 100, 102])
+    late = steady(range(2020, 2025), [60, 70, 80, 90, 100])
+    ok, spread = is_stable(early, late)
+    assert ok is False
+    assert spread == 40
+
+
+def test_the_threshold_is_inclusive():
+    from pipeline.arrivals import MAX_STABLE_SPREAD_DAYS, is_stable
+
+    exactly_at = steady([2008, 2009], [100, 100 + MAX_STABLE_SPREAD_DAYS])
+    one_over = steady([2008, 2009], [100, 101 + MAX_STABLE_SPREAD_DAYS])
+    assert is_stable(exactly_at, [])[0] is True
+    assert is_stable(one_over, [])[0] is False

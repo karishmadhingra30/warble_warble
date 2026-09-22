@@ -130,12 +130,24 @@ function buildAnswer(data) {
   // and "4 days" in the next.
   const roundedCorrected = Math.round(corrected);
   const size = Math.abs(roundedCorrected);
+
+  // The noise floor, taken from the data rather than picked: the largest
+  // apparent shift any resident bird showed. Those birds cannot have changed
+  // their arrival date at all, so that number is what this method produces
+  // out of nothing. A warbler signal smaller than it is not a finding, and
+  // the page must not dress it up as one.
+  const noiseFloor = controlShifts.length
+    ? Math.max(...controlShifts.map((d) => Math.abs(d)))
+    : 2;
+
   let answer;
 
-  if (size < 1) {
+  if (size <= noiseFloor) {
     answer =
-      'California’s warblers are arriving at about the same time as they ' +
-      'did fifteen years ago. A clear "not much changed" is still an answer.';
+      'Barely. California’s warblers do arrive a little earlier than they ' +
+      'did fifteen years ago, but almost all of that disappears once you ' +
+      'subtract the same drift the resident control birds show. A clear ' +
+      '"not much changed" is still an answer.';
   } else if (earlierCount > laterCount && corrected < 0) {
     answer =
       `Most of California’s warblers now arrive about ${Math.round(size)} ` +
@@ -154,9 +166,11 @@ function buildAnswer(data) {
 
   const subhead =
     `${earlierCount} of ${warblerShifts.length} species arrived earlier. ` +
-    `The raw median shift is ${formatShift(Math.round(warblerMedian))}; ` +
-    `the resident control birds, which cannot have changed, shifted ` +
-    `${formatShift(Math.round(controlMedian))}. The difference is what is left over.`;
+    `The median warbler shift is ${formatShift(Math.round(warblerMedian))}. ` +
+    `The resident birds, which cannot have changed at all, shifted ` +
+    `${formatShift(Math.round(controlMedian))} by the same method \u2014 so ` +
+    `${formatShift(roundedCorrected)} is what survives the correction, ` +
+    `against a noise floor of ${noiseFloor} day${noiseFloor === 1 ? '' : 's'}.`;
 
   return { answer, subhead };
 }
@@ -232,6 +246,18 @@ function drawMainChart(data) {
   const surface = cssColor('--surface-card');
   const allDays = rows.flatMap((s) => [s.early_arrival_doy, s.late_arrival_doy]);
 
+  // Snap the axis to whole multiples of the tick step.
+  //
+  // Chart.js always draws a tick exactly at an explicit `min`, and then its
+  // next tick at the following round number. When those two are a few days
+  // apart the labels are drawn on top of each other ("January 13" printed
+  // over "January 20"). Choosing the step ourselves and snapping the bounds
+  // to it means every tick lands on a multiple of the step and they are
+  // evenly spaced by construction.
+  const tickStep = isNarrow() ? 40 : 20;
+  const axisMin = Math.max(1, Math.floor((Math.min(...allDays) - 4) / tickStep) * tickStep);
+  const axisMax = Math.ceil((Math.max(...allDays) + 4) / tickStep) * tickStep;
+
   // Height grows with the number of rows so the x-axis band is never squeezed
   // out, and grows again on a phone where the labels wrap to two lines.
   const narrow = isNarrow();
@@ -293,21 +319,24 @@ function drawMainChart(data) {
           type: 'linear',
           // Framed on the data with a few days of air either side. Starting at
           // day 0 would squeeze every dumbbell into the right-hand third.
-          // Set as hard bounds rather than suggestions: the connector is a
-          // bar dataset, and Chart.js pulls a bar's value axis back to zero
+          // Hard bounds rather than suggestions: the connector is a bar
+          // dataset, and Chart.js pulls a bar's value axis back to zero
           // unless told otherwise, which would squash every dumbbell.
-          min: Math.min(...allDays) - 4,
-          max: Math.max(...allDays) + 4,
+          min: axisMin,
+          max: axisMax,
           title: { display: true, text: 'arrival date', color: cssColor('--text-muted') },
           ticks: {
             color: cssColor('--text-secondary'),
             // Whole days only. Two ticks a third of a day apart would print
             // the same calendar date twice.
             precision: 0,
+            stepSize: tickStep,
             callback: (value) =>
               (Number.isInteger(value) ? formatDay(value) : null),
             maxRotation: 0,
-            autoSkipPadding: 12,
+            // Generous, because these labels are words rather than numbers
+            // and "September 30" is wide.
+            autoSkipPadding: 28,
           },
           grid: { color: cssColor('--grid'), drawTicks: false },
           border: { color: cssColor('--border') },
@@ -510,6 +539,13 @@ function drawControlPanel(data) {
       'The residents barely moved, which is the result you want from a control: ' +
       'it means the method is not manufacturing a shift on its own, and the ' +
       'warbler numbers can be read close to face value.';
+  } else if (Math.abs(leftOver) <= Math.abs(controlMedian)) {
+    verdict =
+      `The residents shifted ${formatShift(controlMedian)} by this same method, ` +
+      'and they cannot have shifted at all. That is most of what the warblers ' +
+      'show. What survives the correction is smaller than the error bar the ' +
+      'controls just measured, so the honest reading is that this method cannot ' +
+      'detect a real change in these birds over these fifteen years.';
   } else if (Math.abs(controlMedian) >= Math.abs(warblerMedian)) {
     verdict =
       'The residents moved as much as the warblers did. Since they cannot have ' +

@@ -60,6 +60,12 @@ MIN_SIGHTINGS_PER_YEAR = 100
 # A five-year window needs at least this many usable years to report a median.
 MIN_YEARS_PER_WINDOW = 3
 
+# If a species' own springs inside one window disagree by more than this many
+# days, it has no stable arrival date and the shift between windows cannot be
+# read. Three weeks. See DECISIONS.md section 9 for where this number came
+# from, including the fact that it was added after seeing the first results.
+MAX_STABLE_SPREAD_DAYS = 21
+
 # Any non-leap year works as the calendar we translate day numbers back into.
 # 2001 is arbitrary and never shown to the reader.
 REFERENCE_YEAR = 2001
@@ -419,3 +425,44 @@ def shift_days(early: WindowArrival, late: WindowArrival) -> Optional[int]:
     if early.arrival_doy is None or late.arrival_doy is None:
         return None
     return late.arrival_doy - early.arrival_doy
+
+
+def window_spread(years: Sequence[YearArrival]) -> Optional[int]:
+    """How many days separate the earliest and latest spring in one window.
+
+    This is the measurement's own noise. A species whose five springs land
+    within a week of each other has a real arrival date that a five-year
+    median describes well. A species whose springs scatter across six weeks
+    does not, and no median of them means very much.
+    """
+    usable = [y.arrival_doy for y in years if y.used and y.arrival_doy is not None]
+    if len(usable) < 2:
+        return None
+    return max(usable) - min(usable)
+
+
+def is_stable(
+    early: Sequence[YearArrival],
+    late: Sequence[YearArrival],
+    max_spread: int = MAX_STABLE_SPREAD_DAYS,
+) -> tuple[bool, Optional[int]]:
+    """Is this species' arrival date steady enough to compare? (ok, spread).
+
+    Takes the worse of the two windows, because one unstable window is enough
+    to make the comparison meaningless. Returns the spread alongside the
+    verdict so the caller can put the actual number in front of the reader
+    rather than just a label.
+
+    Why this check has to exist
+    ---------------------------
+    You cannot measure a shift smaller than the noise in your own
+    measurement. Comparing two five-year medians says nothing if the five
+    springs behind each median disagree by more than the gap between them.
+    Every other guard in this project is about the data going in; this one is
+    about whether the answer coming out means anything.
+    """
+    spreads = [s for s in (window_spread(early), window_spread(late)) if s is not None]
+    if not spreads:
+        return True, None
+    worst = max(spreads)
+    return worst <= max_spread, worst

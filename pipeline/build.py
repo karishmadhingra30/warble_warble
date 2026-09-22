@@ -127,9 +127,31 @@ def build_species(
             print(f"    {year}: {last.n:>6} sightings -> {shown}", flush=True)
 
     by_year = {y.year: y for y in yearly}
-    early = arrivals.window_arrival([by_year[y] for y in window_years(EARLY_WINDOW)])
-    late = arrivals.window_arrival([by_year[y] for y in window_years(LATE_WINDOW)])
+    early_years = [by_year[y] for y in window_years(EARLY_WINDOW)]
+    late_years = [by_year[y] for y in window_years(LATE_WINDOW)]
+    early = arrivals.window_arrival(early_years)
+    late = arrivals.window_arrival(late_years)
     shift = arrivals.shift_days(early, late)
+
+    # -- step 2b: is the answer steady enough to mean anything? -----------
+    # The wintering check above asks whether the data going in is sound. This
+    # asks whether the number coming out is. A species whose own five springs
+    # scatter across six weeks has no arrival date for a median to describe.
+    stable, spread = arrivals.is_stable(early_years, late_years)
+    if not stable and reliability == "good":
+        reliability = "flagged"
+        note = (
+            f"This species' own springs disagree by up to {spread} days within "
+            f"a single window, which is more than the {shift:+d} day gap "
+            "between the windows. The shift is smaller than the year-to-year "
+            "noise behind it, so it should not be read as a change in the "
+            "birds."
+        ) if shift is not None else (
+            f"This species' own springs disagree by up to {spread} days "
+            "within a single window, so it has no stable arrival date."
+        )
+        if verbose:
+            print(f"    within-window spread {spread} days -> flagged as unstable")
 
     if verbose:
         if shift is None:
@@ -153,6 +175,7 @@ def build_species(
         "shift_days": shift,
         "years_used": {"early": early.years_used, "late": late.years_used},
         "winter_share": round(fetch.winter_share(monthly), 3),
+        "window_spread_days": spread,
         "monthly_counts": [monthly.get(m, 0) for m in fetch.ALL_MONTHS],
         "yearly": [
             {

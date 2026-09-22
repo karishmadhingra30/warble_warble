@@ -107,10 +107,23 @@ species visible and keeps the reader informed, which is the honest trade.
 <!-- BEGIN MONTHLY EVIDENCE -->
 ### Evidence
 
-_Not yet filled in. Run `python pipeline/build.py --monthly-report` and this
-section is rewritten in place with the real monthly counts and the label each
-species earned. Until then, no species has been classified, because
-classifying them from memory is the one thing this section exists to prevent._
+Counts are eBird records in California, 2008-2024,
+pulled 2026-09-22.
+
+| species | Jan | Feb | Mar | Apr | May | Jun | Jul | Aug | Sep | Oct | Nov | Dec | winter share | label |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|
+| Wilson's Warbler | 2,537 | 1,778 | 13,658 | 95,719 | 116,947 | 42,840 | 22,463 | 41,029 | 73,796 | 15,044 | 2,511 | 2,498 | 0.03 | `good` |
+| Yellow Warbler | 2,033 | 1,341 | 1,803 | 41,697 | 93,472 | 44,848 | 24,256 | 35,404 | 101,683 | 28,540 | 2,427 | 2,254 | 0.04 | `good` |
+| Black-throated Gray Warbler | 3,410 | 2,281 | 3,846 | 37,889 | 18,060 | 8,789 | 3,947 | 11,480 | 32,995 | 25,449 | 4,383 | 3,731 | 0.17 | `good` |
+| Hermit Warbler | 647 | 360 | 469 | 11,914 | 21,724 | 12,449 | 4,565 | 6,678 | 6,946 | 2,607 | 653 | 981 | 0.06 | `good` |
+| MacGillivray's Warbler | 55 | 9 | 124 | 7,759 | 17,090 | 15,143 | 7,416 | 8,117 | 9,698 | 1,535 | 64 | 86 | 0.01 | `good` |
+| Nashville Warbler | 1,596 | 731 | 942 | 26,992 | 12,576 | 10,138 | 3,980 | 7,455 | 10,266 | 4,844 | 1,338 | 1,488 | 0.10 | `good` |
+| Townsend's Warbler | 50,063 | 32,181 | 32,657 | 34,434 | 28,641 | 569 | 59 | 5,863 | 60,958 | 75,361 | 53,190 | 61,860 | 2.28 | `excluded` |
+| Orange-crowned Warbler | 53,090 | 44,843 | 78,113 | 132,390 | 91,410 | 47,841 | 22,072 | 39,065 | 99,804 | 80,252 | 48,529 | 58,820 | 0.70 | `excluded` |
+| California Towhee | 161,617 | 143,730 | 157,325 | 198,985 | 192,110 | 133,112 | 118,094 | 117,052 | 154,411 | 148,772 | 123,297 | 158,465 | 1.19 | `control` |
+| Oak Titmouse | 95,720 | 88,159 | 97,560 | 108,795 | 95,260 | 70,295 | 59,882 | 60,409 | 78,854 | 77,892 | 72,044 | 92,397 | 1.35 | `control` |
+
+Read the table across: a clean migrant has near-zero counts in December, January and February and a spike in April and May. A bird that winters here does not.
 <!-- END MONTHLY EVIDENCE -->
 
 ---
@@ -240,3 +253,68 @@ going back to GBIF. If you want one, run `--mode records`, budget several
 hours, and expect it to stall on the larger species. That trade is worth it:
 the archive was never the point, and an hour-long run that finishes beats a
 week-long run that does not.
+
+---
+
+## 9. Flag a species whose own springs disagree more than the windows do
+
+**Decision.** If a species' five yearly arrival dates inside one window
+scatter by more than 21 days, it is flagged on the page as unstable and its
+shift is marked as not readable, whatever the wintering check said.
+
+**Be clear about the order this happened in.** This check was added *after*
+seeing the first full run, because that run produced a result the existing
+rules let through and should not have. That is the kind of thing a reader
+deserves to be told, so it is written here rather than smoothed over.
+
+**What happened.** Black-throated Gray Warbler came back at 21 days
+**later**, against every other species moving a few days earlier. Its winter
+share was 0.168, just under the 0.20 flag threshold, so it passed as `good`.
+
+Its five early-window springs were:
+
+> 18 February, 21 February, 5 March, 25 March, 29 March
+
+A 40-day spread. The "21 day shift" between window medians is smaller than
+the disagreement among the springs each median is made of. It is noise with a
+confident-looking number attached.
+
+**Why it happens** is visible in its monthly counts. December through
+February hold a few thousand records, and April holds 38,000. That winter
+tail is small in absolute terms, but it is just big enough that the 10th
+percentile lands on the boundary between the last of the wintering birds and
+the first of the migration. A knife edge: a few dozen records either way in
+January moves the answer by weeks.
+
+**Why the winter-share rule did not catch it.** That rule asks whether
+wintering birds dominate. Here they do not, they merely sit exactly where the
+percentile falls. The rule is about the data going in. This new one is about
+whether the answer coming out means anything, which is a different question.
+
+**Why the threshold is 21 days.** The measured spreads, in days:
+
+| 6 | 7 | 7 | 7 | 8 | 9 | 9 | 9 | 14 | **39** |
+|---|---|---|---|---|---|---|---|---|---|
+
+Every species sits between 6 and 14 except one, at 39. The threshold is put
+in the middle of that gap, not against the edge of it, so it does not depend
+on any single value. Three weeks is also independently defensible: a bird
+whose own springs disagree by more than three weeks has no arrival date
+precise enough for a few-day shift to be measured against.
+
+**Something that does not work, recorded so it is not retried.** The obvious
+test is the ratio of the shift to the spread. It fails here: Black-throated
+Gray ranks *third best* of ten on that ratio, because its shift is large in
+proportion to its own large noise. Absolute scatter is the statistic that
+separates the unstable species; the ratio is not.
+
+**Flagged, not excluded.** The species stays on the chart in its own colour
+with the spread named in plain words. Deleting an inconvenient result is
+worse than showing it with a warning, and the number is real even though the
+conclusion people would draw from it is not.
+
+**How this could be wrong.** If Black-throated Gray genuinely shifted later
+while every other warbler shifted earlier, this flag hides a real finding
+behind a caution. Given a 40-day scatter inside a single five-year window,
+that is not the way to bet, but the data is all in `site/data/arrivals.json`
+if you want to argue otherwise.
