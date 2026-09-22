@@ -12,8 +12,10 @@
 #   git add site/data/arrivals.json # commit the numbers you just looked at
 #   git push                        # this workflow publishes them
 #
-# Turning it on: repository Settings -> Pages -> Source: "GitHub Actions".
-# Until that is set, this workflow runs and then fails at the deploy step.
+# Turning Pages on: the Configure Pages step below does it for you, using the
+# `pages: write` permission this workflow grants itself. If you would rather
+# do it by hand, it is repository Settings -> Pages -> Source: "GitHub
+# Actions", and then `enablement: true` becomes a no-op.
 
 name: Deploy site to GitHub Pages
 
@@ -45,6 +47,11 @@ jobs:
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
+        with:
+          # Turn Pages on for the repository if it is not on already, rather
+          # than failing and waiting for someone to click through Settings.
+          # This works because the job is granted `pages: write` above.
+          enablement: true
 
       - name: Package the site folder
         uses: actions/upload-pages-artifact@v3
